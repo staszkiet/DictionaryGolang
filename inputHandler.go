@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"os"
-	"strings"
 
 	"github.com/machinebox/graphql"
 	"github.com/staszkiet/DictionaryGolang/graph/model"
@@ -33,8 +30,9 @@ type UpdateHandler struct {
 
 func (a AddHandler) PerformAction(word string, action string) bool {
 	if action == "ADD" {
-
-		reader := bufio.NewReader(os.Stdin)
+		var translation, sentence string
+		reader := NewReader()
+		sentences := []string{}
 
 		graphqlClient := graphql.NewClient("http://localhost:8080/query")
 		graphqlRequest := graphql.NewRequest(`
@@ -45,17 +43,13 @@ func (a AddHandler) PerformAction(word string, action string) bool {
 			}
 		`)
 		fmt.Println("translation:")
-		translation, _ := reader.ReadString('\n')
-		translation = strings.Replace(translation, "\n", "", -1)
-		sentences := []string{}
+		translation = reader.Read()
 		fmt.Println("example sentences:")
 		for {
-			sentence, _ := reader.ReadString('\n')
-			sentence = strings.Replace(sentence, "\n", "", -1)
+			sentence = reader.Read()
 			if sentence == "" {
 				break
 			}
-
 			sentences = append(sentences, sentence)
 		}
 
@@ -124,13 +118,12 @@ func ListenForInput() {
 	var action string
 	var word string
 	add := AddHandler{next: CreateHandler{next: DeleteHandler{next: UpdateHandler{}}}}
-	reader := bufio.NewReader(os.Stdin)
+	reader := NewReader()
 	for {
 
 		fmt.Println("choose action:")
 		fmt.Scanln(&action)
-		word, _ = reader.ReadString('\n')
-		word = strings.Replace(word, "\n", "", -1)
+		word = reader.Read()
 		add.PerformAction(word, action)
 	}
 }
