@@ -48,7 +48,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		CreateWord func(childComplexity int, polish string, translations []*model.NewTranslation) int
+		CreateWord func(childComplexity int, polish string, translation model.NewTranslation) int
 	}
 
 	Query struct {
@@ -74,7 +74,7 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	CreateWord(ctx context.Context, polish string, translations []*model.NewTranslation) (*model.Word, error)
+	CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (*model.Word, error)
 }
 type QueryResolver interface {
 	Words(ctx context.Context) ([]*model.Word, error)
@@ -109,7 +109,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateWord(childComplexity, args["polish"].(string), args["translations"].([]*model.NewTranslation)), true
+		return e.complexity.Mutation.CreateWord(childComplexity, args["polish"].(string), args["translation"].(model.NewTranslation)), true
 
 	case "Query.words":
 		if e.complexity.Query.Words == nil {
@@ -307,11 +307,11 @@ func (ec *executionContext) field_Mutation_createWord_args(ctx context.Context, 
 		return nil, err
 	}
 	args["polish"] = arg0
-	arg1, err := ec.field_Mutation_createWord_argsTranslations(ctx, rawArgs)
+	arg1, err := ec.field_Mutation_createWord_argsTranslation(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["translations"] = arg1
+	args["translation"] = arg1
 	return args, nil
 }
 func (ec *executionContext) field_Mutation_createWord_argsPolish(
@@ -327,16 +327,16 @@ func (ec *executionContext) field_Mutation_createWord_argsPolish(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_createWord_argsTranslations(
+func (ec *executionContext) field_Mutation_createWord_argsTranslation(
 	ctx context.Context,
 	rawArgs map[string]any,
-) ([]*model.NewTranslation, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("translations"))
-	if tmp, ok := rawArgs["translations"]; ok {
-		return ec.unmarshalNNewTranslation2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslationᚄ(ctx, tmp)
+) (model.NewTranslation, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("translation"))
+	if tmp, ok := rawArgs["translation"]; ok {
+		return ec.unmarshalNNewTranslation2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslation(ctx, tmp)
 	}
 
-	var zeroVal []*model.NewTranslation
+	var zeroVal model.NewTranslation
 	return zeroVal, nil
 }
 
@@ -477,7 +477,7 @@ func (ec *executionContext) _Mutation_createWord(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateWord(rctx, fc.Args["polish"].(string), fc.Args["translations"].([]*model.NewTranslation))
+		return ec.resolvers.Mutation().CreateWord(rctx, fc.Args["polish"].(string), fc.Args["translation"].(model.NewTranslation))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3696,26 +3696,9 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNNewTranslation2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslationᚄ(ctx context.Context, v any) ([]*model.NewTranslation, error) {
-	var vSlice []any
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
-	var err error
-	res := make([]*model.NewTranslation, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNNewTranslation2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslation(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) unmarshalNNewTranslation2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslation(ctx context.Context, v any) (*model.NewTranslation, error) {
+func (ec *executionContext) unmarshalNNewTranslation2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslation(ctx context.Context, v any) (model.NewTranslation, error) {
 	res, err := ec.unmarshalInputNewTranslation(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐSentenceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Sentence) graphql.Marshaler {

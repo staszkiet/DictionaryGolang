@@ -11,21 +11,18 @@ import (
 )
 
 // CreateWord is the resolver for the createWord field.
-func (r *mutationResolver) CreateWord(ctx context.Context, polish string, translations []*model.NewTranslation) (*model.Word, error) {
-
+func (r *mutationResolver) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (*model.Word, error) {
 	var convertedTranslations []*model.Translation
 	var sentences []*model.Sentence
 
-	for _, t := range translations {
-		sentences = make([]*model.Sentence, 0)
-		for _, s := range t.Sentences {
-			sentences = append(sentences, &model.Sentence{ID: "0", Sentence: s})
-		}
-		convertedTranslations = append(convertedTranslations, &model.Translation{ID: "0",
-			English:   t.English,
-			Sentences: sentences,
-		})
+	sentences = make([]*model.Sentence, 0)
+	for _, s := range translation.Sentences {
+		sentences = append(sentences, &model.Sentence{ID: "0", Sentence: s})
 	}
+	convertedTranslations = append(convertedTranslations, &model.Translation{ID: "0",
+		English:   translation.English,
+		Sentences: sentences,
+	})
 
 	ret := &model.Word{
 		ID:           "0",

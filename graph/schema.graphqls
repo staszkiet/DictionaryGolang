@@ -25,5 +25,5 @@ input NewTranslation {
 }
 
 type Mutation {
-  createWord(polish: String!, translations: [NewTranslation!]!): Word!
+  createWord(polish: String!, translation: NewTranslation!): Word!
 }

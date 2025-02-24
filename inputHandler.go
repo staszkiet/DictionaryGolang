@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
+
+	"github.com/machinebox/graphql"
 )
 
 type IHandler interface {
@@ -27,8 +30,19 @@ type UpdateHandler struct {
 func (a AddHandler) PerformAction(word string, action string) bool {
 	if action == "ADD" {
 
-		//perform action
-		fmt.Println(word)
+		graphqlClient := graphql.NewClient("http://localhost:8080/query")
+		graphqlRequest := graphql.NewRequest(`
+			mutation Words{
+  createWord(polish: "cokolwiek", translation: {english:"whatever" sentences: []}){
+    polish
+  }
+}
+		`)
+		var graphqlResponse interface{}
+		if err := graphqlClient.Run(context.Background(), graphqlRequest, &graphqlResponse); err != nil {
+			panic(err)
+		}
+		fmt.Println(graphqlResponse)
 		return true
 	}
 	if a.next == nil {
@@ -36,6 +50,7 @@ func (a AddHandler) PerformAction(word string, action string) bool {
 	} else {
 		return a.next.PerformAction(word, action)
 	}
+
 }
 
 func (c CreateHandler) PerformAction(word string, action string) bool {
