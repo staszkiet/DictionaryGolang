@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/machinebox/graphql"
+	"github.com/staszkiet/DictionaryGolang/graph/model"
 )
 
 type IHandler interface {
@@ -30,14 +34,35 @@ type UpdateHandler struct {
 func (a AddHandler) PerformAction(word string, action string) bool {
 	if action == "ADD" {
 
+		reader := bufio.NewReader(os.Stdin)
+
 		graphqlClient := graphql.NewClient("http://localhost:8080/query")
 		graphqlRequest := graphql.NewRequest(`
-			mutation Words{
-  createWord(polish: "cokolwiek", translation: {english:"whatever" sentences: []}){
-    polish
-  }
-}
+					mutation CreateWord($polish: String!, $translation: NewTranslation!) {
+				createWord(polish: $polish, translation: $translation) {
+					polish
+				}
+			}
 		`)
+		fmt.Println("translation:")
+		translation, _ := reader.ReadString('\n')
+		translation = strings.Replace(translation, "\n", "", -1)
+		sentences := []string{}
+		fmt.Println("example sentences:")
+		for {
+			sentence, _ := reader.ReadString('\n')
+			sentence = strings.Replace(sentence, "\n", "", -1)
+			if sentence == "" {
+				break
+			}
+
+			sentences = append(sentences, sentence)
+		}
+
+		graphqlRequest.Var("polish", word)
+		newTran := model.NewTranslation{English: translation, Sentences: sentences}
+		graphqlRequest.Var("translation", newTran)
+
 		var graphqlResponse interface{}
 		if err := graphqlClient.Run(context.Background(), graphqlRequest, &graphqlResponse); err != nil {
 			panic(err)
@@ -99,11 +124,13 @@ func ListenForInput() {
 	var action string
 	var word string
 	add := AddHandler{next: CreateHandler{next: DeleteHandler{next: UpdateHandler{}}}}
+	reader := bufio.NewReader(os.Stdin)
 	for {
 
 		fmt.Println("choose action:")
 		fmt.Scanln(&action)
-		fmt.Scanln(&word)
+		word, _ = reader.ReadString('\n')
+		word = strings.Replace(word, "\n", "", -1)
 		add.PerformAction(word, action)
 	}
 }
