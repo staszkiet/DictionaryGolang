@@ -7,30 +7,31 @@ package graph
 import (
 	"context"
 
+	"github.com/staszkiet/DictionaryGolang/database"
+	dbmodels "github.com/staszkiet/DictionaryGolang/database/models"
 	"github.com/staszkiet/DictionaryGolang/graph/model"
 )
 
 // CreateWord is the resolver for the createWord field.
 func (r *mutationResolver) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (*model.Word, error) {
-	var convertedTranslations []*model.Translation
-	var sentences []*model.Sentence
+	var convertedTranslations []dbmodels.Translation
+	var sentences []dbmodels.Sentence
 
-	sentences = make([]*model.Sentence, 0)
+	sentences = make([]dbmodels.Sentence, 0)
 	for _, s := range translation.Sentences {
-		sentences = append(sentences, &model.Sentence{ID: "0", Sentence: s})
+		sentences = append(sentences, dbmodels.Sentence{Sentence: s})
 	}
-	convertedTranslations = append(convertedTranslations, &model.Translation{ID: "0",
+	convertedTranslations = append(convertedTranslations, dbmodels.Translation{
 		English:   translation.English,
 		Sentences: sentences,
 	})
 
-	ret := &model.Word{
-		ID:           "0",
+	ret := &dbmodels.Word{
 		Polish:       polish,
 		Translations: convertedTranslations,
 	}
-	r.words = append(r.words, ret)
-	return ret, nil
+	database.DB.Create(ret)
+	return &model.Word{}, nil
 }
 
 // Words is the resolver for the words field.
