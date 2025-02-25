@@ -10,10 +10,14 @@ type Reader struct {
 	reader *bufio.Reader
 }
 
-func NewReader() *Reader {
-	return &Reader{
-		reader: bufio.NewReader(os.Stdin),
+var instance *Reader
+
+func GetReaderInstance() *Reader {
+	if instance == nil {
+		instance = &Reader{
+			reader: bufio.NewReader(os.Stdin)}
 	}
+	return instance
 }
 
 func (r *Reader) Read() string {

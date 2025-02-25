@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/machinebox/graphql"
@@ -31,10 +30,10 @@ type UpdateHandler struct {
 func (a AddHandler) PerformAction(word string, action string) bool {
 	if action == "ADD" {
 		var translation, sentence string
-		reader := NewReader()
+		reader := GetReaderInstance()
 		sentences := []string{}
 
-		graphqlClient := graphql.NewClient("http://localhost:8080/query")
+		graphqlClient := GetClientInstance()
 		graphqlRequest := graphql.NewRequest(`
 					mutation CreateWord($polish: String!, $translation: NewTranslation!) {
 				createWord(polish: $polish, translation: $translation) {
@@ -58,9 +57,11 @@ func (a AddHandler) PerformAction(word string, action string) bool {
 		graphqlRequest.Var("translation", newTran)
 
 		var graphqlResponse interface{}
-		if err := graphqlClient.Run(context.Background(), graphqlRequest, &graphqlResponse); err != nil {
+
+		if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
 			panic(err)
 		}
+
 		fmt.Println(graphqlResponse)
 		return true
 	}
@@ -118,7 +119,7 @@ func ListenForInput() {
 	var action string
 	var word string
 	add := AddHandler{next: CreateHandler{next: DeleteHandler{next: UpdateHandler{}}}}
-	reader := NewReader()
+	reader := GetReaderInstance()
 	for {
 
 		fmt.Println("choose action:")
