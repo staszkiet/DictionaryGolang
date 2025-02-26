@@ -6,6 +6,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/staszkiet/DictionaryGolang/database"
 	dbmodels "github.com/staszkiet/DictionaryGolang/database/models"
@@ -32,6 +33,24 @@ func (r *mutationResolver) CreateWord(ctx context.Context, polish string, transl
 	}
 	database.DB.Create(ret)
 	return &model.Word{}, nil
+}
+
+// DeleteWord is the resolver for the deleteWord field.
+func (r *mutationResolver) DeleteWord(ctx context.Context, polish string) (string, error) {
+	var word dbmodels.Word
+	// Find the word by its Polish name
+	if err := database.DB.Where("polish = ?", polish).First(&word).Error; err != nil {
+		panic(err)
+	}
+
+	fmt.Println(word)
+
+	// Delete the word (cascade deletes translations & sentences)
+	if err := database.DB.Delete(&word).Error; err != nil {
+		panic(err)
+	}
+
+	return polish, nil
 }
 
 // Words is the resolver for the words field.

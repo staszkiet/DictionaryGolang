@@ -29,6 +29,8 @@ type UpdateHandler struct {
 
 func (a AddHandler) PerformAction(word string, action string) bool {
 	if action == "ADD" {
+
+		fmt.Println(word)
 		var translation, sentence string
 		reader := GetReaderInstance()
 		sentences := []string{}
@@ -42,6 +44,7 @@ func (a AddHandler) PerformAction(word string, action string) bool {
 			}
 		`)
 		fmt.Println("translation:")
+
 		translation = reader.Read()
 		fmt.Println("example sentences:")
 		for {
@@ -90,8 +93,22 @@ func (c CreateHandler) PerformAction(word string, action string) bool {
 func (d DeleteHandler) PerformAction(word string, action string) bool {
 	if action == "DELETE" {
 
-		//perform action
-		fmt.Println(word)
+		graphqlClient := GetClientInstance()
+		graphqlRequest := graphql.NewRequest(`
+					mutation deleteWord($polish: String!) {
+				deleteWord(polish: $polish)
+			}
+		`)
+
+		graphqlRequest.Var("polish", word)
+
+		var graphqlResponse interface{}
+
+		if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
+			panic(err)
+		}
+
+		fmt.Println(graphqlResponse)
 		return true
 	}
 	if d.next == nil {

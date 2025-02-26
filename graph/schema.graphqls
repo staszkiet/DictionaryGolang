@@ -26,4 +26,5 @@ input NewTranslation {
 
 type Mutation {
   createWord(polish: String!, translation: NewTranslation!): Word!
+  deleteWord(polish: String!): String!
 }

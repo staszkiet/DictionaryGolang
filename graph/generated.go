@@ -49,6 +49,7 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Mutation struct {
 		CreateWord func(childComplexity int, polish string, translation model.NewTranslation) int
+		DeleteWord func(childComplexity int, polish string) int
 	}
 
 	Query struct {
@@ -75,6 +76,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (*model.Word, error)
+	DeleteWord(ctx context.Context, polish string) (string, error)
 }
 type QueryResolver interface {
 	Words(ctx context.Context) ([]*model.Word, error)
@@ -110,6 +112,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateWord(childComplexity, args["polish"].(string), args["translation"].(model.NewTranslation)), true
+
+	case "Mutation.deleteWord":
+		if e.complexity.Mutation.DeleteWord == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteWord_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteWord(childComplexity, args["polish"].(string)), true
 
 	case "Query.words":
 		if e.complexity.Query.Words == nil {
@@ -340,6 +354,29 @@ func (ec *executionContext) field_Mutation_createWord_argsTranslation(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation_deleteWord_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_deleteWord_argsPolish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["polish"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_deleteWord_argsPolish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("polish"))
+	if tmp, ok := rawArgs["polish"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -520,6 +557,61 @@ func (ec *executionContext) fieldContext_Mutation_createWord(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createWord_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteWord(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteWord(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteWord(rctx, fc.Args["polish"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteWord(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteWord_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3090,6 +3182,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "createWord":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createWord(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteWord":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteWord(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
