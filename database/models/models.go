@@ -2,24 +2,23 @@ package dbmodels
 
 import (
 	"github.com/staszkiet/DictionaryGolang/graph/model"
-	"gorm.io/gorm"
 )
 
 type Word struct {
-	gorm.Model
+	ID           uint          `gorm:"primarykey"`
 	Polish       string        `json:"polish"`
 	Translations []Translation `gorm:"foreignKey:WordID;constraint:OnDelete:CASCADE;"`
 }
 
 type Translation struct {
-	gorm.Model
+	ID        uint       `gorm:"primarykey"`
 	WordID    uint       `json:"wordId"`
 	English   string     `json:"english"`
 	Sentences []Sentence `gorm:"foreignKey:TranslationID;constraint:OnDelete:CASCADE;"`
 }
 
 type Sentence struct {
-	gorm.Model
+	ID            uint   `gorm:"primarykey"`
 	TranslationID uint   `json:"translationId"`
 	Sentence      string `json:"sentence"`
 }

@@ -75,7 +75,7 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (*model.Word, error)
+	CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error)
 	DeleteWord(ctx context.Context, polish string) (string, error)
 }
 type QueryResolver interface {
@@ -554,9 +554,9 @@ func (ec *executionContext) _Mutation_createWord(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Word)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWord(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createWord(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -566,15 +566,7 @@ func (ec *executionContext) fieldContext_Mutation_createWord(ctx context.Context
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Word_id(ctx, field)
-			case "polish":
-				return ec.fieldContext_Word_polish(ctx, field)
-			case "translations":
-				return ec.fieldContext_Word_translations(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Word", field.Name)
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	defer func() {

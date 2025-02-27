@@ -6,16 +6,29 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/staszkiet/DictionaryGolang/database"
 	dbmodels "github.com/staszkiet/DictionaryGolang/database/models"
+	customerrors "github.com/staszkiet/DictionaryGolang/errors"
 	"github.com/staszkiet/DictionaryGolang/graph/model"
 )
 
 // CreateWord is the resolver for the createWord field.
-func (r *mutationResolver) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (*model.Word, error) {
+func (r *mutationResolver) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 	var convertedTranslations []dbmodels.Translation
 	var sentences []dbmodels.Sentence
+
+	var count int64
+
+	err := database.DB.Model(&dbmodels.Word{}).Where("polish = ?", polish).Count(&count).Error
+	if err != nil {
+		return false, err
+	} else if count > 0 {
+		return false, &customerrors.WordExistsError{Word: polish}
+	}
+
+	fmt.Println(count)
 
 	sentences = make([]dbmodels.Sentence, 0)
 	for _, s := range translation.Sentences {
@@ -31,7 +44,7 @@ func (r *mutationResolver) CreateWord(ctx context.Context, polish string, transl
 		Translations: convertedTranslations,
 	}
 	database.DB.Create(ret)
-	return &model.Word{}, nil
+	return true, nil
 }
 
 // DeleteWord is the resolver for the deleteWord field.

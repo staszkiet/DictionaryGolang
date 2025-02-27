@@ -14,18 +14,22 @@ type IHandler interface {
 
 type AddHandler struct {
 	next IHandler
+	req  *graphql.Request
 }
 
 type DeleteHandler struct {
 	next IHandler
+	req  *graphql.Request
 }
 
 type SelectHandler struct {
 	next IHandler
+	req  *graphql.Request
 }
 
 type UpdateHandler struct {
 	next IHandler
+	req  *graphql.Request
 }
 
 type SelectResponse struct {
@@ -49,9 +53,7 @@ func (a AddHandler) PerformAction(word string, action string) bool {
 		graphqlClient := GetClientInstance()
 		graphqlRequest := graphql.NewRequest(`
 					mutation CreateWord($polish: String!, $translation: NewTranslation!) {
-				createWord(polish: $polish, translation: $translation) {
-					polish
-				}
+				createWord(polish: $polish, translation: $translation)
 			}
 		`)
 		fmt.Println("translation:")
@@ -73,7 +75,8 @@ func (a AddHandler) PerformAction(word string, action string) bool {
 		var graphqlResponse interface{}
 
 		if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
-			panic(err)
+			fmt.Println(err.Error())
+			return true
 		}
 
 		fmt.Println("Pomyślnie dodano tłumaczenie do słownika!")
@@ -188,6 +191,9 @@ func ListenForInput() {
 
 		fmt.Println("choose action:")
 		fmt.Scanln(&action)
+		if action == "exit" {
+			break
+		}
 		word = reader.Read()
 		add.PerformAction(word, action)
 	}
