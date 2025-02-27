@@ -47,6 +47,29 @@ func (r *mutationResolver) CreateWord(ctx context.Context, polish string, transl
 	return true, nil
 }
 
+// CreateSentence is the resolver for the createSentence field.
+func (r *mutationResolver) CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
+	var word dbmodels.Word
+
+	err := database.DB.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+	if err != nil {
+		return false, err
+	}
+	for i, t := range word.Translations {
+		fmt.Println(t.English)
+		fmt.Println(english)
+		if t.English == english {
+			fmt.Println("jestem")
+			word.Translations[i].Sentences = append(word.Translations[i].Sentences, dbmodels.Sentence{Sentence: sentence})
+			fmt.Println(word)
+		}
+	}
+
+	database.DB.Save(word)
+
+	return true, nil
+}
+
 // DeleteWord is the resolver for the deleteWord field.
 func (r *mutationResolver) DeleteWord(ctx context.Context, polish string) (string, error) {
 	var word dbmodels.Word
