@@ -53,7 +53,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Words func(childComplexity int) int
+		SelectWord func(childComplexity int, polish string) int
 	}
 
 	Sentence struct {
@@ -79,7 +79,7 @@ type MutationResolver interface {
 	DeleteWord(ctx context.Context, polish string) (string, error)
 }
 type QueryResolver interface {
-	Words(ctx context.Context) ([]*model.Word, error)
+	SelectWord(ctx context.Context, polish string) (*model.Word, error)
 }
 
 type executableSchema struct {
@@ -125,12 +125,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.DeleteWord(childComplexity, args["polish"].(string)), true
 
-	case "Query.words":
-		if e.complexity.Query.Words == nil {
+	case "Query.selectWord":
+		if e.complexity.Query.SelectWord == nil {
 			break
 		}
 
-		return e.complexity.Query.Words(childComplexity), true
+		args, err := ec.field_Query_selectWord_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SelectWord(childComplexity, args["polish"].(string)), true
 
 	case "Sentence.id":
 		if e.complexity.Sentence.ID == nil {
@@ -400,6 +405,29 @@ func (ec *executionContext) field_Query___type_argsName(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Query_selectWord_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_selectWord_argsPolish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["polish"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_selectWord_argsPolish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("polish"))
+	if tmp, ok := rawArgs["polish"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field___Directive_args_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -618,8 +646,8 @@ func (ec *executionContext) fieldContext_Mutation_deleteWord(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_words(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_words(ctx, field)
+func (ec *executionContext) _Query_selectWord(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_selectWord(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -632,7 +660,7 @@ func (ec *executionContext) _Query_words(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Words(rctx)
+		return ec.resolvers.Query().SelectWord(rctx, fc.Args["polish"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -644,12 +672,12 @@ func (ec *executionContext) _Query_words(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Word)
+	res := resTmp.(*model.Word)
 	fc.Result = res
-	return ec.marshalNWord2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWordᚄ(ctx, field.Selections, res)
+	return ec.marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWord(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_words(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_selectWord(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -666,6 +694,17 @@ func (ec *executionContext) fieldContext_Query_words(_ context.Context, field gr
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Word", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_selectWord_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -3235,7 +3274,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "words":
+		case "selectWord":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -3244,7 +3283,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_words(ctx, field)
+				res = ec._Query_selectWord(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -3957,50 +3996,6 @@ func (ec *executionContext) marshalNTranslation2ᚖgithubᚗcomᚋstaszkietᚋDi
 
 func (ec *executionContext) marshalNWord2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWord(ctx context.Context, sel ast.SelectionSet, v model.Word) graphql.Marshaler {
 	return ec._Word(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNWord2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWordᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Word) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWord(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
 }
 
 func (ec *executionContext) marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWord(ctx context.Context, sel ast.SelectionSet, v *model.Word) graphql.Marshaler {

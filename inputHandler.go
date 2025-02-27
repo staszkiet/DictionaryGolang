@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/machinebox/graphql"
@@ -19,7 +20,7 @@ type DeleteHandler struct {
 	next IHandler
 }
 
-type CreateHandler struct {
+type SelectHandler struct {
 	next IHandler
 }
 
@@ -27,10 +28,20 @@ type UpdateHandler struct {
 	next IHandler
 }
 
+type SelectResponse struct {
+	SelectWord struct {
+		Translations []struct {
+			English   string `json:"english"`
+			Sentences []struct {
+				Sentence string `json:"sentence"`
+			} `json:"sentences"`
+		} `json:"translations"`
+	} `json:"selectWord"`
+}
+
 func (a AddHandler) PerformAction(word string, action string) bool {
 	if action == "ADD" {
 
-		fmt.Println(word)
 		var translation, sentence string
 		reader := GetReaderInstance()
 		sentences := []string{}
@@ -65,7 +76,8 @@ func (a AddHandler) PerformAction(word string, action string) bool {
 			panic(err)
 		}
 
-		fmt.Println(graphqlResponse)
+		fmt.Println("Pomyślnie dodano tłumaczenie do słownika!")
+
 		return true
 	}
 	if a.next == nil {
@@ -76,11 +88,34 @@ func (a AddHandler) PerformAction(word string, action string) bool {
 
 }
 
-func (c CreateHandler) PerformAction(word string, action string) bool {
-	if action == "CREATE" {
+func (c SelectHandler) PerformAction(word string, action string) bool {
+	if action == "SELECT" {
 
-		//perform action
-		fmt.Println(word)
+		graphqlClient := GetClientInstance()
+		graphqlRequest := graphql.NewRequest(`
+					query selectWord($polish: String!) {
+				selectWord(polish: $polish){
+          translations{
+            english
+            sentences{
+              sentence
+            }
+          }
+        
+				}
+			}
+		`)
+
+		graphqlRequest.Var("polish", word)
+
+		var graphqlResponse SelectResponse
+
+		if err := graphqlClient.client.Run(context.Background(), graphqlRequest, &graphqlResponse); err != nil {
+			panic(err)
+		}
+
+		PrintSelectOutput(graphqlResponse, word)
+
 		return true
 	}
 	if c.next == nil {
@@ -88,6 +123,18 @@ func (c CreateHandler) PerformAction(word string, action string) bool {
 	} else {
 		return c.next.PerformAction(word, action)
 	}
+}
+
+func PrintSelectOutput(response SelectResponse, polish string) {
+	fmt.Printf("\n\nTłumaczenia dla słowa %s\n\n", polish)
+	for _, t := range response.SelectWord.Translations {
+		fmt.Printf("%s\n\n", t.English)
+		fmt.Printf("Przykładowe zdania:\n\n")
+		for _, s := range t.Sentences {
+			fmt.Printf("%s\n", s.Sentence)
+		}
+	}
+	fmt.Printf("\n\n")
 }
 
 func (d DeleteHandler) PerformAction(word string, action string) bool {
@@ -135,7 +182,7 @@ func (u UpdateHandler) PerformAction(word string, action string) bool {
 func ListenForInput() {
 	var action string
 	var word string
-	add := AddHandler{next: CreateHandler{next: DeleteHandler{next: UpdateHandler{}}}}
+	add := AddHandler{next: SelectHandler{next: DeleteHandler{next: UpdateHandler{}}}}
 	reader := GetReaderInstance()
 	for {
 

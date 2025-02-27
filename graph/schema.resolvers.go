@@ -6,7 +6,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/staszkiet/DictionaryGolang/database"
 	dbmodels "github.com/staszkiet/DictionaryGolang/database/models"
@@ -38,24 +37,27 @@ func (r *mutationResolver) CreateWord(ctx context.Context, polish string, transl
 // DeleteWord is the resolver for the deleteWord field.
 func (r *mutationResolver) DeleteWord(ctx context.Context, polish string) (string, error) {
 	var word dbmodels.Word
-	// Find the word by its Polish name
-	if err := database.DB.Where("polish = ?", polish).First(&word).Error; err != nil {
+
+	if err := database.DB.Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error; err != nil {
 		panic(err)
 	}
 
-	fmt.Println(word)
-
-	// Delete the word (cascade deletes translations & sentences)
-	if err := database.DB.Delete(&word).Error; err != nil {
+	if err := database.DB.Preload("Translations.Sentences").Delete(&word).Error; err != nil {
 		panic(err)
 	}
 
 	return polish, nil
 }
 
-// Words is the resolver for the words field.
-func (r *queryResolver) Words(ctx context.Context) ([]*model.Word, error) {
-	return r.words, nil
+// SelectWord is the resolver for the selectWord field.
+func (r *queryResolver) SelectWord(ctx context.Context, polish string) (*model.Word, error) {
+	var word dbmodels.Word
+
+	if err := database.DB.Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error; err != nil {
+		return nil, err
+	}
+
+	return dbmodels.DBWordToGQLWord(&word), nil
 }
 
 // Mutation returns MutationResolver implementation.

@@ -16,7 +16,7 @@ type Sentence {
 }
 
 type Query {
-  words: [Word!]!
+  selectWord(polish: String!): Word!
 }
 
 input NewTranslation {
