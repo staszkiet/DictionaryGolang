@@ -170,8 +170,18 @@ func (d DeleteHandler) PerformAction(word string, action string) bool {
 
 func (u UpdateHandler) PerformAction(word string, action string) bool {
 	if action == "UPDATE" {
-
-		command := AddSentenceCommand{polish: word}
+		reader := GetReaderInstance()
+		com := reader.Read()
+		var command ICommand
+		if com == "ADD SENTENCE" {
+			command = AddSentenceCommand{polish: word}
+		} else if com == "DELETE SENTENCE" {
+			command = DeleteSentenceCommand{polish: word}
+		} else if com == "ADD TRANSLATION" {
+			command = AddTranslationCommand{polish: word}
+		} else if com == "DELETE TRANSLATION" {
+			command = DeleteTranslationCommand{polish: word}
+		}
 		command.Execute()
 
 		return true
@@ -181,40 +191,6 @@ func (u UpdateHandler) PerformAction(word string, action string) bool {
 	} else {
 		return u.next.PerformAction(word, action)
 	}
-}
-
-type IUpdateCommand interface {
-	Execute() error
-}
-
-type AddSentenceCommand struct {
-	polish string
-}
-
-func (a AddSentenceCommand) Execute() error {
-	reader := GetReaderInstance()
-	fmt.Println("translation:")
-	translation := reader.Read()
-	fmt.Println("sentence:")
-	sentence := reader.Read()
-	graphqlClient := GetClientInstance()
-	graphqlRequest := graphql.NewRequest(`
-				mutation createSentence($polish: String!, $english: String!, $sentence: String!) {
-			createSentence(polish: $polish, english: $english, sentence: $sentence)
-		}
-	`)
-
-	graphqlRequest.Var("polish", a.polish)
-	graphqlRequest.Var("english", translation)
-	graphqlRequest.Var("sentence", sentence)
-
-	var graphqlResponse interface{}
-
-	if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
-		panic(err)
-	}
-
-	return nil
 }
 
 func ListenForInput() {

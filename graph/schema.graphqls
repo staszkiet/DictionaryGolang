@@ -27,5 +27,8 @@ input NewTranslation {
 type Mutation {
   createWord(polish: String!, translation: NewTranslation!): Boolean!
   createSentence(polish: String!, english: String!, sentence: String!): Boolean!
+  createTranslation(polish: String!, translation: NewTranslation!): Boolean!
+  deleteSentence(polish: String!, english: String!, sentence: String!): Boolean!
+  deleteTranslation(polish: String!, english: String!): Boolean!
   deleteWord(polish: String!): String!
 }

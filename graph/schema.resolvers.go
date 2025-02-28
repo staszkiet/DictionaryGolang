@@ -28,8 +28,6 @@ func (r *mutationResolver) CreateWord(ctx context.Context, polish string, transl
 		return false, &customerrors.WordExistsError{Word: polish}
 	}
 
-	fmt.Println(count)
-
 	sentences = make([]dbmodels.Sentence, 0)
 	for _, s := range translation.Sentences {
 		sentences = append(sentences, dbmodels.Sentence{Sentence: s})
@@ -66,6 +64,77 @@ func (r *mutationResolver) CreateSentence(ctx context.Context, polish string, en
 	}
 
 	database.DB.Save(word)
+
+	return true, nil
+}
+
+// CreateTranslation is the resolver for the createTranslation field.
+func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
+	var word dbmodels.Word
+	var sentences []dbmodels.Sentence
+
+	err := database.DB.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+	if err != nil {
+		return false, err
+	}
+
+	sentences = make([]dbmodels.Sentence, 0)
+	for _, s := range translation.Sentences {
+		sentences = append(sentences, dbmodels.Sentence{Sentence: s})
+	}
+	word.Translations = append(word.Translations, dbmodels.Translation{
+		English:   translation.English,
+		Sentences: sentences,
+	})
+
+	database.DB.Save(word)
+
+	return true, nil
+}
+
+// DeleteSentence is the resolver for the deleteSentence field.
+func (r *mutationResolver) DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
+	var word dbmodels.Word
+
+	err := database.DB.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+	if err != nil {
+		return false, err
+	}
+
+	var TranslationID uint
+
+	for i, t := range word.Translations {
+
+		if t.English == english {
+
+			TranslationID = word.Translations[i].ID
+			break
+		}
+	}
+
+	if TranslationID == 0 {
+		return false, fmt.Errorf("translation not found")
+	}
+
+	if err := database.DB.Where("translation_id = ? AND sentence = ?", TranslationID, sentence).Delete(&dbmodels.Sentence{}).Error; err != nil {
+		return false, fmt.Errorf("failed to delete sentence: %v", err)
+	}
+
+	return true, nil
+}
+
+// DeleteTranslation is the resolver for the deleteTranslation field.
+func (r *mutationResolver) DeleteTranslation(ctx context.Context, polish string, english string) (bool, error) {
+	var word dbmodels.Word
+
+	err := database.DB.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+	if err != nil {
+		return false, err
+	}
+
+	if err := database.DB.Where("word_id = ? AND english = ?", word.ID, english).Delete(&dbmodels.Translation{}).Error; err != nil {
+		return false, fmt.Errorf("failed to delete translation: %v", err)
+	}
 
 	return true, nil
 }
