@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+var db *gorm.DB
 
 func ConnectDB() {
 
@@ -21,16 +21,23 @@ func ConnectDB() {
 
 	dsn := os.Getenv("DATABASE_URL")
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	err = db.AutoMigrate(&dbmodels.Word{}, &dbmodels.Translation{}, &dbmodels.Sentence{})
+	err = database.AutoMigrate(&dbmodels.Word{}, &dbmodels.Translation{}, &dbmodels.Sentence{})
 	if err != nil {
 		log.Fatal("Failed to migrate")
 	}
 
-	DB = db
+	db = database
 
+}
+
+func GetDBInstance() *gorm.DB {
+	if db == nil {
+		ConnectDB()
+	}
+	return db
 }
