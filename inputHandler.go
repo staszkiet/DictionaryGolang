@@ -1,36 +1,8 @@
 package main
 
 import (
-	"context"
 	"fmt"
-
-	"github.com/machinebox/graphql"
-	"github.com/staszkiet/DictionaryGolang/graph/model"
 )
-
-type IHandler interface {
-	PerformAction(string, string) bool
-}
-
-type AddHandler struct {
-	next IHandler
-	req  *graphql.Request
-}
-
-type DeleteHandler struct {
-	next IHandler
-	req  *graphql.Request
-}
-
-type SelectHandler struct {
-	next IHandler
-	req  *graphql.Request
-}
-
-type UpdateHandler struct {
-	next IHandler
-	req  *graphql.Request
-}
 
 type SelectResponse struct {
 	SelectWord struct {
@@ -41,91 +13,6 @@ type SelectResponse struct {
 			} `json:"sentences"`
 		} `json:"translations"`
 	} `json:"selectWord"`
-}
-
-func (a AddHandler) PerformAction(word string, action string) bool {
-	if action == "ADD" {
-
-		var translation, sentence string
-		reader := GetReaderInstance()
-		sentences := []string{}
-
-		graphqlClient := GetClientInstance()
-		graphqlRequest := graphql.NewRequest(`
-					mutation CreateWord($polish: String!, $translation: NewTranslation!) {
-				createWord(polish: $polish, translation: $translation)
-			}
-		`)
-		fmt.Println("translation:")
-
-		translation = reader.Read()
-		fmt.Println("example sentences:")
-		for {
-			sentence = reader.Read()
-			if sentence == "" {
-				break
-			}
-			sentences = append(sentences, sentence)
-		}
-
-		graphqlRequest.Var("polish", word)
-		newTran := model.NewTranslation{English: translation, Sentences: sentences}
-		graphqlRequest.Var("translation", newTran)
-
-		var graphqlResponse interface{}
-
-		if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
-			fmt.Println(err.Error())
-			return true
-		}
-
-		fmt.Println("Pomyślnie dodano tłumaczenie do słownika!")
-
-		return true
-	}
-	if a.next == nil {
-		return false
-	} else {
-		return a.next.PerformAction(word, action)
-	}
-
-}
-
-func (c SelectHandler) PerformAction(word string, action string) bool {
-	if action == "SELECT" {
-
-		graphqlClient := GetClientInstance()
-		graphqlRequest := graphql.NewRequest(`
-					query selectWord($polish: String!) {
-				selectWord(polish: $polish){
-          translations{
-            english
-            sentences{
-              sentence
-            }
-          }
-        
-				}
-			}
-		`)
-
-		graphqlRequest.Var("polish", word)
-
-		var graphqlResponse SelectResponse
-
-		if err := graphqlClient.client.Run(context.Background(), graphqlRequest, &graphqlResponse); err != nil {
-			panic(err)
-		}
-
-		PrintSelectOutput(graphqlResponse, word)
-
-		return true
-	}
-	if c.next == nil {
-		return false
-	} else {
-		return c.next.PerformAction(word, action)
-	}
 }
 
 func PrintSelectOutput(response SelectResponse, polish string) {
@@ -140,64 +27,10 @@ func PrintSelectOutput(response SelectResponse, polish string) {
 	fmt.Printf("\n\n")
 }
 
-func (d DeleteHandler) PerformAction(word string, action string) bool {
-	if action == "DELETE" {
-
-		graphqlClient := GetClientInstance()
-		graphqlRequest := graphql.NewRequest(`
-					mutation deleteWord($polish: String!) {
-				deleteWord(polish: $polish)
-			}
-		`)
-
-		graphqlRequest.Var("polish", word)
-
-		var graphqlResponse interface{}
-
-		if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
-			panic(err)
-		}
-
-		fmt.Println(graphqlResponse)
-		return true
-	}
-	if d.next == nil {
-		return false
-	} else {
-		return d.next.PerformAction(word, action)
-	}
-}
-
-func (u UpdateHandler) PerformAction(word string, action string) bool {
-	if action == "UPDATE" {
-		reader := GetReaderInstance()
-		com := reader.Read()
-		var command ICommand
-		if com == "ADD SENTENCE" {
-			command = AddSentenceCommand{polish: word}
-		} else if com == "DELETE SENTENCE" {
-			command = DeleteSentenceCommand{polish: word}
-		} else if com == "ADD TRANSLATION" {
-			command = AddTranslationCommand{polish: word}
-		} else if com == "DELETE TRANSLATION" {
-			command = DeleteTranslationCommand{polish: word}
-		}
-		command.Execute()
-
-		return true
-	}
-	if u.next == nil {
-		return false
-	} else {
-		return u.next.PerformAction(word, action)
-	}
-}
-
 func ListenForInput() {
 	var action string
-	var word string
-	add := AddHandler{next: SelectHandler{next: DeleteHandler{next: UpdateHandler{}}}}
 	reader := GetReaderInstance()
+	commands := NewCommandFactory()
 	for {
 
 		fmt.Println("choose action:")
@@ -205,7 +38,12 @@ func ListenForInput() {
 		if action == "exit" {
 			break
 		}
-		word = reader.Read()
-		add.PerformAction(word, action)
+		command, exists := commands.GetCommand(action)
+		if exists {
+			polish := reader.Read()
+			command.Execute(polish)
+		} else {
+			fmt.Println("Podane działanie nie istnieje")
+		}
 	}
 }

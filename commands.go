@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/machinebox/graphql"
@@ -8,26 +9,142 @@ import (
 )
 
 type ICommand interface {
-	Execute() error
+	Execute(polish string) error
 }
 
 type AddSentenceCommand struct {
-	polish string
 }
 
 type DeleteSentenceCommand struct {
-	polish string
 }
 
 type AddTranslationCommand struct {
-	polish string
 }
 
 type DeleteTranslationCommand struct {
-	polish string
 }
 
-func (d DeleteTranslationCommand) Execute() error {
+type AddWordCommand struct {
+}
+
+type DeleteWordCommand struct {
+}
+
+type SelectWordCommand struct {
+}
+
+type CommandFactory struct {
+	commands map[string]ICommand
+}
+
+func NewCommandFactory() *CommandFactory {
+	return &CommandFactory{
+		commands: map[string]ICommand{
+			"ADD TRANSLATION":    &AddTranslationCommand{},
+			"DELETE TRANSLATION": &DeleteTranslationCommand{},
+			"ADD SENTENCE":       &AddSentenceCommand{},
+			"DELETE SENTENCE":    &DeleteSentenceCommand{},
+			"ADD":                &AddWordCommand{},
+			"DELETE":             &DeleteWordCommand{},
+			"SELECT":             &SelectWordCommand{},
+		},
+	}
+}
+
+func (f *CommandFactory) GetCommand(action string) (ICommand, bool) {
+	strategy, exists := f.commands[action]
+	return strategy, exists
+}
+
+func (s SelectWordCommand) Execute(polish string) error {
+	graphqlClient := GetClientInstance()
+	graphqlRequest := graphql.NewRequest(`
+				query selectWord($polish: String!) {
+			selectWord(polish: $polish){
+	  translations{
+		english
+		sentences{
+		  sentence
+		}
+	  }
+	
+			}
+		}
+	`)
+
+	graphqlRequest.Var("polish", polish)
+
+	var graphqlResponse SelectResponse
+
+	if err := graphqlClient.client.Run(context.Background(), graphqlRequest, &graphqlResponse); err != nil {
+		panic(err)
+	}
+
+	PrintSelectOutput(graphqlResponse, polish)
+
+	return nil
+}
+
+func (d DeleteWordCommand) Execute(polish string) error {
+	graphqlClient := GetClientInstance()
+	graphqlRequest := graphql.NewRequest(`
+				mutation deleteWord($polish: String!) {
+			deleteWord(polish: $polish)
+		}
+	`)
+
+	graphqlRequest.Var("polish", polish)
+
+	var graphqlResponse interface{}
+
+	if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
+		return err
+	}
+
+	fmt.Println(graphqlResponse)
+	return nil
+}
+
+func (a AddWordCommand) Execute(polish string) error {
+	var translation, sentence string
+	reader := GetReaderInstance()
+	sentences := []string{}
+
+	graphqlClient := GetClientInstance()
+	graphqlRequest := graphql.NewRequest(`
+				mutation CreateWord($polish: String!, $translation: NewTranslation!) {
+			createWord(polish: $polish, translation: $translation)
+		}
+	`)
+	fmt.Println("translation:")
+
+	translation = reader.Read()
+	fmt.Println("example sentences:")
+	for {
+		sentence = reader.Read()
+		if sentence == "" {
+			break
+		}
+		sentences = append(sentences, sentence)
+	}
+
+	graphqlRequest.Var("polish", polish)
+	newTran := model.NewTranslation{English: translation, Sentences: sentences}
+	graphqlRequest.Var("translation", newTran)
+
+	var graphqlResponse interface{}
+
+	if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+
+	fmt.Println("Pomyślnie dodano tłumaczenie do słownika!")
+
+	return nil
+}
+
+func (d DeleteTranslationCommand) Execute(polish string) error {
 	reader := GetReaderInstance()
 	fmt.Println("translation:")
 	translation := reader.Read()
@@ -38,7 +155,7 @@ func (d DeleteTranslationCommand) Execute() error {
 		}
 	`)
 
-	graphqlRequest.Var("polish", d.polish)
+	graphqlRequest.Var("polish", polish)
 	graphqlRequest.Var("english", translation)
 
 	var graphqlResponse interface{}
@@ -50,7 +167,7 @@ func (d DeleteTranslationCommand) Execute() error {
 	return nil
 }
 
-func (a AddTranslationCommand) Execute() error {
+func (a AddTranslationCommand) Execute(polish string) error {
 	var translation, sentence string
 	reader := GetReaderInstance()
 	sentences := []string{}
@@ -73,7 +190,7 @@ func (a AddTranslationCommand) Execute() error {
 		sentences = append(sentences, sentence)
 	}
 
-	graphqlRequest.Var("polish", a.polish)
+	graphqlRequest.Var("polish", polish)
 	newTran := model.NewTranslation{English: translation, Sentences: sentences}
 	graphqlRequest.Var("translation", newTran)
 
@@ -88,7 +205,7 @@ func (a AddTranslationCommand) Execute() error {
 	return nil
 }
 
-func (d DeleteSentenceCommand) Execute() error {
+func (d DeleteSentenceCommand) Execute(polish string) error {
 	reader := GetReaderInstance()
 	fmt.Println("translation:")
 	translation := reader.Read()
@@ -101,7 +218,7 @@ func (d DeleteSentenceCommand) Execute() error {
 		}
 	`)
 
-	graphqlRequest.Var("polish", d.polish)
+	graphqlRequest.Var("polish", polish)
 	graphqlRequest.Var("english", translation)
 	graphqlRequest.Var("sentence", sentence)
 
@@ -114,7 +231,7 @@ func (d DeleteSentenceCommand) Execute() error {
 	return nil
 }
 
-func (a AddSentenceCommand) Execute() error {
+func (a AddSentenceCommand) Execute(polish string) error {
 	reader := GetReaderInstance()
 	fmt.Println("translation:")
 	translation := reader.Read()
@@ -127,7 +244,7 @@ func (a AddSentenceCommand) Execute() error {
 		}
 	`)
 
-	graphqlRequest.Var("polish", a.polish)
+	graphqlRequest.Var("polish", polish)
 	graphqlRequest.Var("english", translation)
 	graphqlRequest.Var("sentence", sentence)
 
