@@ -13,24 +13,31 @@ type ICommand interface {
 }
 
 type AddSentenceCommand struct {
+	request *graphql.Request
 }
 
 type DeleteSentenceCommand struct {
+	request *graphql.Request
 }
 
 type AddTranslationCommand struct {
+	request *graphql.Request
 }
 
 type DeleteTranslationCommand struct {
+	request *graphql.Request
 }
 
 type AddWordCommand struct {
+	request *graphql.Request
 }
 
 type DeleteWordCommand struct {
+	request *graphql.Request
 }
 
 type SelectWordCommand struct {
+	request *graphql.Request
 }
 
 type CommandFactory struct {
@@ -40,13 +47,32 @@ type CommandFactory struct {
 func NewCommandFactory() *CommandFactory {
 	return &CommandFactory{
 		commands: map[string]ICommand{
-			"ADD TRANSLATION":    &AddTranslationCommand{},
-			"DELETE TRANSLATION": &DeleteTranslationCommand{},
-			"ADD SENTENCE":       &AddSentenceCommand{},
-			"DELETE SENTENCE":    &DeleteSentenceCommand{},
-			"ADD":                &AddWordCommand{},
-			"DELETE":             &DeleteWordCommand{},
-			"SELECT":             &SelectWordCommand{},
+			"ADD TRANSLATION": &AddTranslationCommand{request: graphql.NewRequest(`
+				mutation CreateTranslation($polish: String!, $translation: NewTranslation!) {
+			createTranslation(polish: $polish, translation: $translation)}`)},
+
+			"DELETE TRANSLATION": &DeleteTranslationCommand{request: graphql.NewRequest(`
+				mutation deleteTranslation($polish: String!, $english: String!) 
+				{deleteTranslation(polish: $polish, english: $english)}`)},
+
+			"ADD SENTENCE": &AddSentenceCommand{request: graphql.NewRequest(`
+			mutation createSentence($polish: String!, $english: String!, $sentence: String!) {
+			createSentence(polish: $polish, english: $english, sentence: $sentence)}`)},
+
+			"DELETE SENTENCE": &DeleteSentenceCommand{request: graphql.NewRequest(`
+			mutation deleteSentence($polish: String!, $english: String!, $sentence: String!) {
+			deleteSentence(polish: $polish, english: $english, sentence: $sentence)}`)},
+
+			"ADD": &AddWordCommand{request: graphql.NewRequest(`
+			mutation CreateWord($polish: String!, $translation: NewTranslation!)
+			 {createWord(polish: $polish, translation: $translation)}`)},
+
+			"DELETE": &DeleteWordCommand{request: graphql.NewRequest(
+				`mutation CreateWord($polish: String!, $translation: NewTranslation!) 
+			{createWord(polish: $polish, translation: $translation)}`)},
+
+			"SELECT": &SelectWordCommand{request: graphql.NewRequest(`query selectWord($polish: String!) 
+			{selectWord(polish: $polish){translations{english sentences{sentence}}}}`)},
 		},
 	}
 }
@@ -58,25 +84,12 @@ func (f *CommandFactory) GetCommand(action string) (ICommand, bool) {
 
 func (s SelectWordCommand) Execute(polish string) error {
 	graphqlClient := GetClientInstance()
-	graphqlRequest := graphql.NewRequest(`
-				query selectWord($polish: String!) {
-			selectWord(polish: $polish){
-	  translations{
-		english
-		sentences{
-		  sentence
-		}
-	  }
-	
-			}
-		}
-	`)
 
-	graphqlRequest.Var("polish", polish)
+	s.request.Var("polish", polish)
 
 	var graphqlResponse SelectResponse
 
-	if err := graphqlClient.client.Run(context.Background(), graphqlRequest, &graphqlResponse); err != nil {
+	if err := graphqlClient.client.Run(context.Background(), s.request, &graphqlResponse); err != nil {
 		panic(err)
 	}
 
@@ -87,17 +100,12 @@ func (s SelectWordCommand) Execute(polish string) error {
 
 func (d DeleteWordCommand) Execute(polish string) error {
 	graphqlClient := GetClientInstance()
-	graphqlRequest := graphql.NewRequest(`
-				mutation deleteWord($polish: String!) {
-			deleteWord(polish: $polish)
-		}
-	`)
 
-	graphqlRequest.Var("polish", polish)
+	d.request.Var("polish", polish)
 
 	var graphqlResponse interface{}
 
-	if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
+	if err := graphqlClient.Request(d.request, &graphqlResponse); err != nil {
 		return err
 	}
 
@@ -111,11 +119,7 @@ func (a AddWordCommand) Execute(polish string) error {
 	sentences := []string{}
 
 	graphqlClient := GetClientInstance()
-	graphqlRequest := graphql.NewRequest(`
-				mutation CreateWord($polish: String!, $translation: NewTranslation!) {
-			createWord(polish: $polish, translation: $translation)
-		}
-	`)
+
 	fmt.Println("translation:")
 
 	translation = reader.Read()
@@ -128,13 +132,13 @@ func (a AddWordCommand) Execute(polish string) error {
 		sentences = append(sentences, sentence)
 	}
 
-	graphqlRequest.Var("polish", polish)
+	a.request.Var("polish", polish)
 	newTran := model.NewTranslation{English: translation, Sentences: sentences}
-	graphqlRequest.Var("translation", newTran)
+	a.request.Var("translation", newTran)
 
 	var graphqlResponse interface{}
 
-	if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
+	if err := graphqlClient.Request(a.request, &graphqlResponse); err != nil {
 		fmt.Println(err.Error())
 		return err
 	}
@@ -149,19 +153,14 @@ func (d DeleteTranslationCommand) Execute(polish string) error {
 	fmt.Println("translation:")
 	translation := reader.Read()
 	graphqlClient := GetClientInstance()
-	graphqlRequest := graphql.NewRequest(`
-				mutation deleteTranslation($polish: String!, $english: String!) {
-			deleteTranslation(polish: $polish, english: $english)
-		}
-	`)
 
-	graphqlRequest.Var("polish", polish)
-	graphqlRequest.Var("english", translation)
+	d.request.Var("polish", polish)
+	d.request.Var("english", translation)
 
 	var graphqlResponse interface{}
 
-	if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
-		panic(err)
+	if err := graphqlClient.Request(d.request, &graphqlResponse); err != nil {
+		return err
 	}
 
 	return nil
@@ -173,11 +172,7 @@ func (a AddTranslationCommand) Execute(polish string) error {
 	sentences := []string{}
 
 	graphqlClient := GetClientInstance()
-	graphqlRequest := graphql.NewRequest(`
-				mutation CreateTranslation($polish: String!, $translation: NewTranslation!) {
-			createTranslation(polish: $polish, translation: $translation)
-		}
-	`)
+
 	fmt.Println("translation:")
 
 	translation = reader.Read()
@@ -190,13 +185,13 @@ func (a AddTranslationCommand) Execute(polish string) error {
 		sentences = append(sentences, sentence)
 	}
 
-	graphqlRequest.Var("polish", polish)
+	a.request.Var("polish", polish)
 	newTran := model.NewTranslation{English: translation, Sentences: sentences}
-	graphqlRequest.Var("translation", newTran)
+	a.request.Var("translation", newTran)
 
 	var graphqlResponse interface{}
 
-	if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
+	if err := graphqlClient.Request(a.request, &graphqlResponse); err != nil {
 		fmt.Println(err.Error())
 	}
 
@@ -212,19 +207,14 @@ func (d DeleteSentenceCommand) Execute(polish string) error {
 	fmt.Println("sentence:")
 	sentence := reader.Read()
 	graphqlClient := GetClientInstance()
-	graphqlRequest := graphql.NewRequest(`
-				mutation deleteSentence($polish: String!, $english: String!, $sentence: String!) {
-			deleteSentence(polish: $polish, english: $english, sentence: $sentence)
-		}
-	`)
 
-	graphqlRequest.Var("polish", polish)
-	graphqlRequest.Var("english", translation)
-	graphqlRequest.Var("sentence", sentence)
+	d.request.Var("polish", polish)
+	d.request.Var("english", translation)
+	d.request.Var("sentence", sentence)
 
 	var graphqlResponse interface{}
 
-	if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
+	if err := graphqlClient.Request(d.request, &graphqlResponse); err != nil {
 		panic(err)
 	}
 
@@ -238,19 +228,14 @@ func (a AddSentenceCommand) Execute(polish string) error {
 	fmt.Println("sentence:")
 	sentence := reader.Read()
 	graphqlClient := GetClientInstance()
-	graphqlRequest := graphql.NewRequest(`
-				mutation createSentence($polish: String!, $english: String!, $sentence: String!) {
-			createSentence(polish: $polish, english: $english, sentence: $sentence)
-		}
-	`)
 
-	graphqlRequest.Var("polish", polish)
-	graphqlRequest.Var("english", translation)
-	graphqlRequest.Var("sentence", sentence)
+	a.request.Var("polish", polish)
+	a.request.Var("english", translation)
+	a.request.Var("sentence", sentence)
 
 	var graphqlResponse interface{}
 
-	if err := graphqlClient.Request(graphqlRequest, &graphqlResponse); err != nil {
+	if err := graphqlClient.Request(a.request, &graphqlResponse); err != nil {
 		panic(err)
 	}
 
