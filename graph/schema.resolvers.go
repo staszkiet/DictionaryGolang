@@ -7,14 +7,12 @@ package graph
 import (
 	"context"
 
-	"github.com/staszkiet/DictionaryGolang/database"
 	dbmodels "github.com/staszkiet/DictionaryGolang/database/models"
 	"github.com/staszkiet/DictionaryGolang/graph/model"
 )
 
 // CreateWord is the resolver for the createWord field.
 func (r *mutationResolver) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
-	DB := database.GetDBInstance()
 
 	sentences := make([]dbmodels.Sentence, 0)
 
@@ -34,7 +32,7 @@ func (r *mutationResolver) CreateWord(ctx context.Context, polish string, transl
 		Translations: convertedTranslations,
 	}
 
-	tx := DB.Begin()
+	tx := r.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -56,9 +54,8 @@ func (r *mutationResolver) CreateWord(ctx context.Context, polish string, transl
 // CreateSentence is the resolver for the createSentence field.
 func (r *mutationResolver) CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
 	var word dbmodels.Word
-	DB := database.GetDBInstance()
 
-	tx := DB.Begin()
+	tx := r.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -91,7 +88,6 @@ func (r *mutationResolver) CreateSentence(ctx context.Context, polish string, en
 
 // CreateTranslation is the resolver for the createTranslation field.
 func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
-	DB := database.GetDBInstance()
 
 	var word dbmodels.Word
 	sentences := make([]dbmodels.Sentence, 0)
@@ -100,7 +96,7 @@ func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string,
 		sentences = append(sentences, dbmodels.Sentence{Sentence: s})
 	}
 
-	tx := DB.Begin()
+	tx := r.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -131,11 +127,9 @@ func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string,
 
 // DeleteSentence is the resolver for the deleteSentence field.
 func (r *mutationResolver) DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
-	DB := database.GetDBInstance()
-
 	var s dbmodels.Sentence
 
-	tx := DB.Begin()
+	tx := r.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -166,9 +160,8 @@ func (r *mutationResolver) DeleteSentence(ctx context.Context, polish string, en
 func (r *mutationResolver) DeleteTranslation(ctx context.Context, polish string, english string) (bool, error) {
 	var translation dbmodels.Translation
 	var count int64
-	DB := database.GetDBInstance()
 
-	tx := DB.Begin()
+	tx := r.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -209,9 +202,8 @@ func (r *mutationResolver) DeleteTranslation(ctx context.Context, polish string,
 // DeleteWord is the resolver for the deleteWord field.
 func (r *mutationResolver) DeleteWord(ctx context.Context, polish string) (bool, error) {
 	var word dbmodels.Word
-	DB := database.GetDBInstance()
 
-	tx := DB.Begin()
+	tx := r.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -237,9 +229,8 @@ func (r *mutationResolver) DeleteWord(ctx context.Context, polish string) (bool,
 // UpdateWord is the resolver for the updateWord field.
 func (r *mutationResolver) UpdateWord(ctx context.Context, polish string, newPolish string) (bool, error) {
 	var word dbmodels.Word
-	DB := database.GetDBInstance()
 
-	tx := DB.Begin()
+	tx := r.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -265,11 +256,10 @@ func (r *mutationResolver) UpdateWord(ctx context.Context, polish string, newPol
 
 // UpdateTranslation is the resolver for the updateTranslation field.
 func (r *mutationResolver) UpdateTranslation(ctx context.Context, polish string, english string, newEnglish string) (bool, error) {
-	DB := database.GetDBInstance()
 
 	var translation dbmodels.Translation
 
-	tx := DB.Begin()
+	tx := r.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -299,11 +289,10 @@ func (r *mutationResolver) UpdateTranslation(ctx context.Context, polish string,
 
 // UpdateSentence is the resolver for the updateSentence field.
 func (r *mutationResolver) UpdateSentence(ctx context.Context, polish string, english string, sentence string, newSentence string) (bool, error) {
-	DB := database.GetDBInstance()
 
 	var s dbmodels.Sentence
 
-	tx := DB.Begin()
+	tx := r.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -335,9 +324,8 @@ func (r *mutationResolver) UpdateSentence(ctx context.Context, polish string, en
 // SelectWord is the resolver for the selectWord field.
 func (r *queryResolver) SelectWord(ctx context.Context, polish string) (*model.Word, error) {
 	var word dbmodels.Word
-	DB := database.GetDBInstance()
 
-	if err := DB.Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error; err != nil {
+	if err := r.DB.Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error; err != nil {
 		return nil, err
 	}
 

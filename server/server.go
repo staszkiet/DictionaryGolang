@@ -19,14 +19,15 @@ const defaultPort = "8080"
 
 func main() {
 
-	database.ConnectDB()
+	db := database.ConnectDB()
+	resolver := &graph.Resolver{DB: db}
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
 	}
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
