@@ -31,17 +31,20 @@ func ListenForInput() {
 	var action string
 	reader := GetReaderInstance()
 	commands := NewCommandFactory()
+	fmt.Println("wybierz operację:\nADD - dodaj nowe słowo i jego tłumaczenie\nDELETE - usuń słowo\nSELECT - otrzymaj informacje o tłumaczeniu\n\nPolecenia modyfikujące istniejące tłumaczenia:\nADD TRANSLATION - dodaj tłumaczenie do słowa ze słownika\nDELETE TRANSLATION - usuń tłumaczenie\nADD SENTENCE - dodaj przykładowe zdanie do tłumaczenia\nDELETE SENTENCE - usuń przykładowe zdanie z danego tłumaczenia\nUPDATE - modyfikuje polską część\nUPDATE TRANSLATION - modyfikuje angielską częśc\nUPDATE SENTENCE - modyfikuje dane zdanie przykładowe")
 	for {
-
-		fmt.Println("choose action:")
-		fmt.Scanln(&action)
+		action = reader.Read()
 		if action == "exit" {
 			break
 		}
 		command, exists := commands.GetCommand(action)
 		if exists {
+			fmt.Println("podaj polską część tłumaczenia")
 			polish := reader.Read()
-			command.Execute(polish)
+			fmt.Println(polish)
+			if err := command.Execute(polish); err != nil {
+				fmt.Println(err)
+			}
 		} else {
 			fmt.Println("Podane działanie nie istnieje")
 		}

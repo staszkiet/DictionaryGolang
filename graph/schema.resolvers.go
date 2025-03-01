@@ -10,29 +10,21 @@ import (
 
 	"github.com/staszkiet/DictionaryGolang/database"
 	dbmodels "github.com/staszkiet/DictionaryGolang/database/models"
-	customerrors "github.com/staszkiet/DictionaryGolang/errors"
 	"github.com/staszkiet/DictionaryGolang/graph/model"
 )
 
 // CreateWord is the resolver for the createWord field.
 func (r *mutationResolver) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 	DB := database.GetDBInstance()
-	var convertedTranslations []dbmodels.Translation
-	var sentences []dbmodels.Sentence
 
-	var count int64
+	sentences := make([]dbmodels.Sentence, 0)
 
-	err := DB.Model(&dbmodels.Word{}).Where("polish = ?", polish).Count(&count).Error
-	if err != nil {
-		return false, err
-	} else if count > 0 {
-		return false, &customerrors.WordExistsError{Word: polish}
-	}
-
-	sentences = make([]dbmodels.Sentence, 0)
 	for _, s := range translation.Sentences {
 		sentences = append(sentences, dbmodels.Sentence{Sentence: s})
 	}
+
+	var convertedTranslations []dbmodels.Translation
+
 	convertedTranslations = append(convertedTranslations, dbmodels.Translation{
 		English:   translation.English,
 		Sentences: sentences,
@@ -42,7 +34,8 @@ func (r *mutationResolver) CreateWord(ctx context.Context, polish string, transl
 		Polish:       polish,
 		Translations: convertedTranslations,
 	}
-	DB.Create(ret)
+
+	DB.Debug().Create(ret)
 	return true, nil
 }
 
@@ -55,12 +48,9 @@ func (r *mutationResolver) CreateSentence(ctx context.Context, polish string, en
 		return false, err
 	}
 	for i, t := range word.Translations {
-		fmt.Println(t.English)
-		fmt.Println(english)
+
 		if t.English == english {
-			fmt.Println("jestem")
 			word.Translations[i].Sentences = append(word.Translations[i].Sentences, dbmodels.Sentence{Sentence: sentence})
-			fmt.Println(word)
 		}
 	}
 
@@ -71,19 +61,26 @@ func (r *mutationResolver) CreateSentence(ctx context.Context, polish string, en
 
 // CreateTranslation is the resolver for the createTranslation field.
 func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
-	var word dbmodels.Word
-	var sentences []dbmodels.Sentence
 	DB := database.GetDBInstance()
 
-	err := DB.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+	var count int64
+	var word dbmodels.Word
+	sentences := make([]dbmodels.Sentence, 0)
+
+	for _, s := range translation.Sentences {
+		sentences = append(sentences, dbmodels.Sentence{Sentence: s})
+	}
+
+	err := DB.Model(&dbmodels.Word{}).Where("polish = ?", polish).Count(&count).Error
 	if err != nil {
 		return false, err
 	}
 
-	sentences = make([]dbmodels.Sentence, 0)
-	for _, s := range translation.Sentences {
-		sentences = append(sentences, dbmodels.Sentence{Sentence: s})
+	err = DB.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+	if err != nil {
+		return false, err
 	}
+
 	word.Translations = append(word.Translations, dbmodels.Translation{
 		English:   translation.English,
 		Sentences: sentences,
@@ -143,19 +140,79 @@ func (r *mutationResolver) DeleteTranslation(ctx context.Context, polish string,
 }
 
 // DeleteWord is the resolver for the deleteWord field.
-func (r *mutationResolver) DeleteWord(ctx context.Context, polish string) (string, error) {
+func (r *mutationResolver) DeleteWord(ctx context.Context, polish string) (bool, error) {
 	var word dbmodels.Word
 	DB := database.GetDBInstance()
 
 	if err := DB.Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error; err != nil {
-		panic(err)
+		return false, err
 	}
 
 	if err := DB.Preload("Translations.Sentences").Delete(&word).Error; err != nil {
-		panic(err)
+		return false, err
 	}
 
-	return polish, nil
+	return true, nil
+}
+
+// UpdateWord is the resolver for the updateWord field.
+func (r *mutationResolver) UpdateWord(ctx context.Context, polish string, newPolish string) (bool, error) {
+	var word dbmodels.Word
+	DB := database.GetDBInstance()
+	err := DB.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+	if err != nil {
+		return false, err
+	}
+
+	word.Polish = newPolish
+
+	DB.Save(word)
+
+	return true, nil
+}
+
+// UpdateTranslation is the resolver for the updateTranslation field.
+func (r *mutationResolver) UpdateTranslation(ctx context.Context, polish string, english string, newEnglish string) (bool, error) {
+	DB := database.GetDBInstance()
+
+	var translation dbmodels.Translation
+
+	err := DB.Joins("RIGHT JOIN words ON words.id = translations.word_id").
+		Where("words.polish = ? AND translations.english = ?", polish, english).
+		First(&translation).Error
+	if err != nil {
+		return false, err
+	}
+
+	err = DB.Model(&translation).Update("english", newEnglish).Error
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// UpdateSentence is the resolver for the updateSentence field.
+func (r *mutationResolver) UpdateSentence(ctx context.Context, polish string, english string, sentence string, newSentence string) (bool, error) {
+	DB := database.GetDBInstance()
+
+	var s dbmodels.Sentence
+
+	err := DB.Joins("JOIN translations ON sentences.translation_id = translations.id").
+		Joins("JOIN words ON words.id = translations.word_id").
+		Where("words.polish = ? AND translations.english = ? AND sentences.sentence = ?", polish, english, sentence).
+		First(&s).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	err = DB.Model(&s).Update("sentence", newSentence).Error
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // SelectWord is the resolver for the selectWord field.

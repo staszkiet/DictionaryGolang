@@ -6,21 +6,21 @@ import (
 
 type Word struct {
 	ID           uint          `gorm:"primarykey"`
-	Polish       string        `json:"polish"`
+	Polish       string        `json:"polish" gorm:"index;unique"`
 	Translations []Translation `gorm:"foreignKey:WordID;constraint:OnDelete:CASCADE;"`
 }
 
 type Translation struct {
 	ID        uint       `gorm:"primarykey"`
 	WordID    uint       `json:"wordId"`
-	English   string     `json:"english"`
+	English   string     `json:"english" gorm:"index"`
 	Sentences []Sentence `gorm:"foreignKey:TranslationID;constraint:OnDelete:CASCADE;"`
 }
 
 type Sentence struct {
 	ID            uint   `gorm:"primarykey"`
 	TranslationID uint   `json:"translationId"`
-	Sentence      string `json:"sentence"`
+	Sentence      string `json:"sentence" gorm:"index"`
 }
 
 func DBSentenceToGQLSentence(s *Sentence) *model.Sentence {
