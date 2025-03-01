@@ -6,7 +6,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/staszkiet/DictionaryGolang/database"
 	dbmodels "github.com/staszkiet/DictionaryGolang/database/models"
@@ -35,18 +34,46 @@ func (r *mutationResolver) CreateWord(ctx context.Context, polish string, transl
 		Translations: convertedTranslations,
 	}
 
-	DB.Debug().Create(ret)
-	return true, nil
+	tx := DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		return false, err
+	}
+
+	if err := tx.Create(ret).Error; err != nil {
+		tx.Rollback()
+		return false, err
+	}
+
+	return true, tx.Commit().Error
 }
 
 // CreateSentence is the resolver for the createSentence field.
 func (r *mutationResolver) CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
 	var word dbmodels.Word
 	DB := database.GetDBInstance()
-	err := DB.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+
+	tx := DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		return false, err
+	}
+
+	err := tx.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
 	if err != nil {
 		return false, err
 	}
+
 	for i, t := range word.Translations {
 
 		if t.English == english {
@@ -54,16 +81,18 @@ func (r *mutationResolver) CreateSentence(ctx context.Context, polish string, en
 		}
 	}
 
-	DB.Save(word)
+	if err = tx.Save(word).Error; err != nil {
+		tx.Rollback()
+		return false, err
+	}
 
-	return true, nil
+	return true, tx.Commit().Error
 }
 
 // CreateTranslation is the resolver for the createTranslation field.
 func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 	DB := database.GetDBInstance()
 
-	var count int64
 	var word dbmodels.Word
 	sentences := make([]dbmodels.Sentence, 0)
 
@@ -71,12 +100,18 @@ func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string,
 		sentences = append(sentences, dbmodels.Sentence{Sentence: s})
 	}
 
-	err := DB.Model(&dbmodels.Word{}).Where("polish = ?", polish).Count(&count).Error
-	if err != nil {
+	tx := DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
 		return false, err
 	}
 
-	err = DB.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+	err := tx.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
 	if err != nil {
 		return false, err
 	}
@@ -86,57 +121,89 @@ func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string,
 		Sentences: sentences,
 	})
 
-	DB.Save(word)
+	if err = tx.Save(word).Error; err != nil {
+		tx.Rollback()
+		return false, err
+	}
 
-	return true, nil
+	return true, tx.Commit().Error
 }
 
 // DeleteSentence is the resolver for the deleteSentence field.
 func (r *mutationResolver) DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
-	var word dbmodels.Word
 	DB := database.GetDBInstance()
-	err := DB.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+
+	var s dbmodels.Sentence
+
+	tx := DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		return false, err
+	}
+
+	err := tx.Joins("JOIN translations ON sentences.translation_id = translations.id").
+		Joins("JOIN words ON words.id = translations.word_id").
+		Where("words.polish = ? AND translations.english = ? AND sentences.sentence = ?", polish, english, sentence).
+		First(&s).Error
 	if err != nil {
 		return false, err
 	}
 
-	var TranslationID uint
-
-	for i, t := range word.Translations {
-
-		if t.English == english {
-
-			TranslationID = word.Translations[i].ID
-			break
-		}
+	if err := tx.Delete(s).Error; err != nil {
+		tx.Rollback()
+		return false, err
 	}
 
-	if TranslationID == 0 {
-		return false, fmt.Errorf("translation not found")
-	}
-
-	if err := DB.Where("translation_id = ? AND sentence = ?", TranslationID, sentence).Delete(&dbmodels.Sentence{}).Error; err != nil {
-		return false, fmt.Errorf("failed to delete sentence: %v", err)
-	}
-
-	return true, nil
+	return true, tx.Commit().Error
 }
 
 // DeleteTranslation is the resolver for the deleteTranslation field.
 func (r *mutationResolver) DeleteTranslation(ctx context.Context, polish string, english string) (bool, error) {
-	var word dbmodels.Word
+	var translation dbmodels.Translation
+	var count int64
 	DB := database.GetDBInstance()
 
-	err := DB.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+	tx := DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		return false, err
+	}
+
+	err := tx.Joins("RIGHT JOIN words ON words.id = translations.word_id").
+		Where("words.polish = ? AND translations.english = ?", polish, english).
+		First(&translation).Error
 	if err != nil {
 		return false, err
 	}
 
-	if err := DB.Where("word_id = ? AND english = ?", word.ID, english).Delete(&dbmodels.Translation{}).Error; err != nil {
-		return false, fmt.Errorf("failed to delete translation: %v", err)
+	if err := tx.Model(&translation).Delete(&translation).Error; err != nil {
+		tx.Rollback()
+		return false, err
 	}
 
-	return true, nil
+	if err := tx.Model(&dbmodels.Translation{}).Where("word_id = ?", translation.WordID).Count(&count).Error; err != nil {
+		tx.Rollback()
+		return false, err
+	}
+
+	if count == 0 {
+		if err := tx.Where("ID = ?", translation.WordID).Delete(&dbmodels.Word{}).Error; err != nil {
+			tx.Rollback()
+			return false, err
+		}
+	}
+
+	return true, tx.Commit().Error
 }
 
 // DeleteWord is the resolver for the deleteWord field.
@@ -144,31 +211,56 @@ func (r *mutationResolver) DeleteWord(ctx context.Context, polish string) (bool,
 	var word dbmodels.Word
 	DB := database.GetDBInstance()
 
-	if err := DB.Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error; err != nil {
+	tx := DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
 		return false, err
 	}
 
-	if err := DB.Preload("Translations.Sentences").Delete(&word).Error; err != nil {
+	if err := tx.Where("polish = ?", polish).First(&word).Error; err != nil {
 		return false, err
 	}
 
-	return true, nil
+	if err := tx.Delete(&word).Error; err != nil {
+		tx.Rollback()
+		return false, err
+	}
+
+	return true, tx.Commit().Error
 }
 
 // UpdateWord is the resolver for the updateWord field.
 func (r *mutationResolver) UpdateWord(ctx context.Context, polish string, newPolish string) (bool, error) {
 	var word dbmodels.Word
 	DB := database.GetDBInstance()
-	err := DB.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+
+	tx := DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		return false, err
+	}
+
+	err := tx.Model(&dbmodels.Word{}).Where("polish = ?", polish).First(&word).Error
 	if err != nil {
 		return false, err
 	}
 
-	word.Polish = newPolish
+	if err := tx.Model(&word).Update("polish", newPolish).Error; err != nil {
+		tx.Rollback()
+		return false, err
+	}
 
-	DB.Save(word)
-
-	return true, nil
+	return true, tx.Commit().Error
 }
 
 // UpdateTranslation is the resolver for the updateTranslation field.
@@ -177,19 +269,32 @@ func (r *mutationResolver) UpdateTranslation(ctx context.Context, polish string,
 
 	var translation dbmodels.Translation
 
-	err := DB.Joins("RIGHT JOIN words ON words.id = translations.word_id").
+	tx := DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		return false, err
+	}
+
+	err := tx.Joins("RIGHT JOIN words ON words.id = translations.word_id").
 		Where("words.polish = ? AND translations.english = ?", polish, english).
 		First(&translation).Error
+
 	if err != nil {
 		return false, err
 	}
 
-	err = DB.Model(&translation).Update("english", newEnglish).Error
+	err = tx.Model(&translation).Update("english", newEnglish).Error
 	if err != nil {
+		tx.Rollback()
 		return false, err
 	}
 
-	return true, nil
+	return true, tx.Commit().Error
 }
 
 // UpdateSentence is the resolver for the updateSentence field.
@@ -198,7 +303,18 @@ func (r *mutationResolver) UpdateSentence(ctx context.Context, polish string, en
 
 	var s dbmodels.Sentence
 
-	err := DB.Joins("JOIN translations ON sentences.translation_id = translations.id").
+	tx := DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Error; err != nil {
+		return false, err
+	}
+
+	err := tx.Joins("JOIN translations ON sentences.translation_id = translations.id").
 		Joins("JOIN words ON words.id = translations.word_id").
 		Where("words.polish = ? AND translations.english = ? AND sentences.sentence = ?", polish, english, sentence).
 		First(&s).Error
@@ -207,12 +323,13 @@ func (r *mutationResolver) UpdateSentence(ctx context.Context, polish string, en
 		return false, err
 	}
 
-	err = DB.Model(&s).Update("sentence", newSentence).Error
+	err = tx.Model(&s).Update("sentence", newSentence).Error
 	if err != nil {
+		tx.Rollback()
 		return false, err
 	}
 
-	return true, nil
+	return true, tx.Commit().Error
 }
 
 // SelectWord is the resolver for the selectWord field.

@@ -80,8 +80,8 @@ func NewCommandFactory() *CommandFactory {
 			deleteSentence(polish: $polish, english: $english, sentence: $sentence)}`)},
 
 			"DELETE": &DeleteWordCommand{request: graphql.NewRequest(
-				`mutation CreateWord($polish: String!, $translation: NewTranslation!) 
-			{createWord(polish: $polish, translation: $translation)}`)},
+				`mutation DeleteWord($polish: String!) 
+			{deleteWord(polish: $polish)}`)},
 
 			"SELECT": &SelectWordCommand{request: graphql.NewRequest(`query selectWord($polish: String!) 
 			{selectWord(polish: $polish){translations{english sentences{sentence}}}}`)},
@@ -302,7 +302,7 @@ func (d DeleteSentenceCommand) Execute(polish string) error {
 	var graphqlResponse interface{}
 
 	if err := graphqlClient.Request(d.request, &graphqlResponse); err != nil {
-		panic(err)
+		fmt.Println(err.Error())
 	}
 
 	return nil
@@ -323,7 +323,7 @@ func (a AddSentenceCommand) Execute(polish string) error {
 	var graphqlResponse interface{}
 
 	if err := graphqlClient.Request(a.request, &graphqlResponse); err != nil {
-		panic(err)
+		fmt.Println(err.Error())
 	}
 
 	return nil
