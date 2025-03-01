@@ -141,7 +141,6 @@ func (u UpdateSentenceCommand) Execute(polish string) error {
 		return err
 	}
 
-	fmt.Println(graphqlResponse)
 	return nil
 }
 
@@ -163,7 +162,6 @@ func (u UpdateTranslationCommand) Execute(polish string) error {
 		return err
 	}
 
-	fmt.Println(graphqlResponse)
 	return nil
 }
 
@@ -182,7 +180,6 @@ func (u UpdateWordCommand) Execute(polish string) error {
 		return err
 	}
 
-	fmt.Println(graphqlResponse)
 	return nil
 }
 
@@ -197,7 +194,6 @@ func (d DeleteWordCommand) Execute(polish string) error {
 		return err
 	}
 
-	fmt.Println(graphqlResponse)
 	return nil
 }
 
@@ -227,10 +223,8 @@ func (a AddWordCommand) Execute(polish string) error {
 	var graphqlResponse interface{}
 
 	if err := graphqlClient.Request(a.request, &graphqlResponse); err != nil {
-		fmt.Println(err.Error())
+		return err
 	}
-
-	fmt.Println("Pomyślnie dodano tłumaczenie do słownika!")
 
 	return nil
 }
@@ -279,10 +273,8 @@ func (a AddTranslationCommand) Execute(polish string) error {
 	var graphqlResponse interface{}
 
 	if err := graphqlClient.Request(a.request, &graphqlResponse); err != nil {
-		fmt.Println(err.Error())
+		return err
 	}
-
-	fmt.Println("Pomyślnie dodano tłumaczenie do słownika!")
 
 	return nil
 }
@@ -302,7 +294,7 @@ func (d DeleteSentenceCommand) Execute(polish string) error {
 	var graphqlResponse interface{}
 
 	if err := graphqlClient.Request(d.request, &graphqlResponse); err != nil {
-		fmt.Println(err.Error())
+		return err
 	}
 
 	return nil
@@ -323,7 +315,7 @@ func (a AddSentenceCommand) Execute(polish string) error {
 	var graphqlResponse interface{}
 
 	if err := graphqlClient.Request(a.request, &graphqlResponse); err != nil {
-		fmt.Println(err.Error())
+		return err
 	}
 
 	return nil
