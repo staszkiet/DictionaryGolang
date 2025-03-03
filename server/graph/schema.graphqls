@@ -1,0 +1,37 @@
+type Word {
+  id: ID!
+  polish: String!
+  translations: [Translation!]!
+}
+
+type Translation {
+  id: ID!
+  english: String!
+  sentences: [Sentence!]!
+}
+
+type Sentence {
+  id: ID!
+  sentence: String!
+}
+
+type Query {
+  selectWord(polish: String!): Word!
+}
+
+input NewTranslation {
+  english: String!
+  sentences: [String!]!
+}
+
+type Mutation {
+  createWord(polish: String!, translation: NewTranslation!): Boolean!
+  createSentence(polish: String!, english: String!, sentence: String!): Boolean!
+  createTranslation(polish: String!, translation: NewTranslation!): Boolean!
+  deleteSentence(polish: String!, english: String!, sentence: String!): Boolean!
+  deleteTranslation(polish: String!, english: String!): Boolean!
+  deleteWord(polish: String!): Boolean!
+  updateWord(polish: String!, newPolish: String!): Boolean!
+  updateTranslation(polish: String!, english: String!, newEnglish: String!): Boolean!
+  updateSentence(polish: String!, english: String!, sentence: String!, newSentence: String!): Boolean!
+}

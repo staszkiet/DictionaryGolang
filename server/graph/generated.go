@@ -14,7 +14,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/staszkiet/DictionaryGolang/graph/model"
+	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -48,11 +48,19 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		CreateWord func(childComplexity int, polish string, translations []*model.NewTranslation) int
+		CreateSentence    func(childComplexity int, polish string, english string, sentence string) int
+		CreateTranslation func(childComplexity int, polish string, translation model.NewTranslation) int
+		CreateWord        func(childComplexity int, polish string, translation model.NewTranslation) int
+		DeleteSentence    func(childComplexity int, polish string, english string, sentence string) int
+		DeleteTranslation func(childComplexity int, polish string, english string) int
+		DeleteWord        func(childComplexity int, polish string) int
+		UpdateSentence    func(childComplexity int, polish string, english string, sentence string, newSentence string) int
+		UpdateTranslation func(childComplexity int, polish string, english string, newEnglish string) int
+		UpdateWord        func(childComplexity int, polish string, newPolish string) int
 	}
 
 	Query struct {
-		Words func(childComplexity int) int
+		SelectWord func(childComplexity int, polish string) int
 	}
 
 	Sentence struct {
@@ -74,10 +82,18 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	CreateWord(ctx context.Context, polish string, translations []*model.NewTranslation) (*model.Word, error)
+	CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error)
+	CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error)
+	CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error)
+	DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error)
+	DeleteTranslation(ctx context.Context, polish string, english string) (bool, error)
+	DeleteWord(ctx context.Context, polish string) (bool, error)
+	UpdateWord(ctx context.Context, polish string, newPolish string) (bool, error)
+	UpdateTranslation(ctx context.Context, polish string, english string, newEnglish string) (bool, error)
+	UpdateSentence(ctx context.Context, polish string, english string, sentence string, newSentence string) (bool, error)
 }
 type QueryResolver interface {
-	Words(ctx context.Context) ([]*model.Word, error)
+	SelectWord(ctx context.Context, polish string) (*model.Word, error)
 }
 
 type executableSchema struct {
@@ -99,6 +115,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
+	case "Mutation.createSentence":
+		if e.complexity.Mutation.CreateSentence == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createSentence_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateSentence(childComplexity, args["polish"].(string), args["english"].(string), args["sentence"].(string)), true
+
+	case "Mutation.createTranslation":
+		if e.complexity.Mutation.CreateTranslation == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createTranslation_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateTranslation(childComplexity, args["polish"].(string), args["translation"].(model.NewTranslation)), true
+
 	case "Mutation.createWord":
 		if e.complexity.Mutation.CreateWord == nil {
 			break
@@ -109,14 +149,91 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateWord(childComplexity, args["polish"].(string), args["translations"].([]*model.NewTranslation)), true
+		return e.complexity.Mutation.CreateWord(childComplexity, args["polish"].(string), args["translation"].(model.NewTranslation)), true
 
-	case "Query.words":
-		if e.complexity.Query.Words == nil {
+	case "Mutation.deleteSentence":
+		if e.complexity.Mutation.DeleteSentence == nil {
 			break
 		}
 
-		return e.complexity.Query.Words(childComplexity), true
+		args, err := ec.field_Mutation_deleteSentence_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteSentence(childComplexity, args["polish"].(string), args["english"].(string), args["sentence"].(string)), true
+
+	case "Mutation.deleteTranslation":
+		if e.complexity.Mutation.DeleteTranslation == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteTranslation_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteTranslation(childComplexity, args["polish"].(string), args["english"].(string)), true
+
+	case "Mutation.deleteWord":
+		if e.complexity.Mutation.DeleteWord == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteWord_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteWord(childComplexity, args["polish"].(string)), true
+
+	case "Mutation.updateSentence":
+		if e.complexity.Mutation.UpdateSentence == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateSentence_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateSentence(childComplexity, args["polish"].(string), args["english"].(string), args["sentence"].(string), args["newSentence"].(string)), true
+
+	case "Mutation.updateTranslation":
+		if e.complexity.Mutation.UpdateTranslation == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateTranslation_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateTranslation(childComplexity, args["polish"].(string), args["english"].(string), args["newEnglish"].(string)), true
+
+	case "Mutation.updateWord":
+		if e.complexity.Mutation.UpdateWord == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateWord_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateWord(childComplexity, args["polish"].(string), args["newPolish"].(string)), true
+
+	case "Query.selectWord":
+		if e.complexity.Query.SelectWord == nil {
+			break
+		}
+
+		args, err := ec.field_Query_selectWord_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SelectWord(childComplexity, args["polish"].(string)), true
 
 	case "Sentence.id":
 		if e.complexity.Sentence.ID == nil {
@@ -299,6 +416,106 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Mutation_createSentence_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_createSentence_argsPolish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["polish"] = arg0
+	arg1, err := ec.field_Mutation_createSentence_argsEnglish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["english"] = arg1
+	arg2, err := ec.field_Mutation_createSentence_argsSentence(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["sentence"] = arg2
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_createSentence_argsPolish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("polish"))
+	if tmp, ok := rawArgs["polish"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_createSentence_argsEnglish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("english"))
+	if tmp, ok := rawArgs["english"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_createSentence_argsSentence(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("sentence"))
+	if tmp, ok := rawArgs["sentence"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_createTranslation_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_createTranslation_argsPolish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["polish"] = arg0
+	arg1, err := ec.field_Mutation_createTranslation_argsTranslation(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["translation"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_createTranslation_argsPolish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("polish"))
+	if tmp, ok := rawArgs["polish"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_createTranslation_argsTranslation(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.NewTranslation, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("translation"))
+	if tmp, ok := rawArgs["translation"]; ok {
+		return ec.unmarshalNNewTranslation2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐNewTranslation(ctx, tmp)
+	}
+
+	var zeroVal model.NewTranslation
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation_createWord_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -307,11 +524,11 @@ func (ec *executionContext) field_Mutation_createWord_args(ctx context.Context, 
 		return nil, err
 	}
 	args["polish"] = arg0
-	arg1, err := ec.field_Mutation_createWord_argsTranslations(ctx, rawArgs)
+	arg1, err := ec.field_Mutation_createWord_argsTranslation(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["translations"] = arg1
+	args["translation"] = arg1
 	return args, nil
 }
 func (ec *executionContext) field_Mutation_createWord_argsPolish(
@@ -327,16 +544,316 @@ func (ec *executionContext) field_Mutation_createWord_argsPolish(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_createWord_argsTranslations(
+func (ec *executionContext) field_Mutation_createWord_argsTranslation(
 	ctx context.Context,
 	rawArgs map[string]any,
-) ([]*model.NewTranslation, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("translations"))
-	if tmp, ok := rawArgs["translations"]; ok {
-		return ec.unmarshalNNewTranslation2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslationᚄ(ctx, tmp)
+) (model.NewTranslation, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("translation"))
+	if tmp, ok := rawArgs["translation"]; ok {
+		return ec.unmarshalNNewTranslation2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐNewTranslation(ctx, tmp)
 	}
 
-	var zeroVal []*model.NewTranslation
+	var zeroVal model.NewTranslation
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteSentence_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_deleteSentence_argsPolish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["polish"] = arg0
+	arg1, err := ec.field_Mutation_deleteSentence_argsEnglish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["english"] = arg1
+	arg2, err := ec.field_Mutation_deleteSentence_argsSentence(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["sentence"] = arg2
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_deleteSentence_argsPolish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("polish"))
+	if tmp, ok := rawArgs["polish"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteSentence_argsEnglish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("english"))
+	if tmp, ok := rawArgs["english"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteSentence_argsSentence(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("sentence"))
+	if tmp, ok := rawArgs["sentence"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteTranslation_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_deleteTranslation_argsPolish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["polish"] = arg0
+	arg1, err := ec.field_Mutation_deleteTranslation_argsEnglish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["english"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_deleteTranslation_argsPolish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("polish"))
+	if tmp, ok := rawArgs["polish"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteTranslation_argsEnglish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("english"))
+	if tmp, ok := rawArgs["english"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteWord_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_deleteWord_argsPolish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["polish"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_deleteWord_argsPolish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("polish"))
+	if tmp, ok := rawArgs["polish"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateSentence_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_updateSentence_argsPolish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["polish"] = arg0
+	arg1, err := ec.field_Mutation_updateSentence_argsEnglish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["english"] = arg1
+	arg2, err := ec.field_Mutation_updateSentence_argsSentence(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["sentence"] = arg2
+	arg3, err := ec.field_Mutation_updateSentence_argsNewSentence(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["newSentence"] = arg3
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_updateSentence_argsPolish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("polish"))
+	if tmp, ok := rawArgs["polish"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateSentence_argsEnglish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("english"))
+	if tmp, ok := rawArgs["english"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateSentence_argsSentence(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("sentence"))
+	if tmp, ok := rawArgs["sentence"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateSentence_argsNewSentence(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("newSentence"))
+	if tmp, ok := rawArgs["newSentence"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateTranslation_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_updateTranslation_argsPolish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["polish"] = arg0
+	arg1, err := ec.field_Mutation_updateTranslation_argsEnglish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["english"] = arg1
+	arg2, err := ec.field_Mutation_updateTranslation_argsNewEnglish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["newEnglish"] = arg2
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_updateTranslation_argsPolish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("polish"))
+	if tmp, ok := rawArgs["polish"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateTranslation_argsEnglish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("english"))
+	if tmp, ok := rawArgs["english"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateTranslation_argsNewEnglish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("newEnglish"))
+	if tmp, ok := rawArgs["newEnglish"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateWord_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_updateWord_argsPolish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["polish"] = arg0
+	arg1, err := ec.field_Mutation_updateWord_argsNewPolish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["newPolish"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_updateWord_argsPolish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("polish"))
+	if tmp, ok := rawArgs["polish"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateWord_argsNewPolish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("newPolish"))
+	if tmp, ok := rawArgs["newPolish"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
 	return zeroVal, nil
 }
 
@@ -356,6 +873,29 @@ func (ec *executionContext) field_Query___type_argsName(
 ) (string, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 	if tmp, ok := rawArgs["name"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_selectWord_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_selectWord_argsPolish(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["polish"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_selectWord_argsPolish(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("polish"))
+	if tmp, ok := rawArgs["polish"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
@@ -477,7 +1017,502 @@ func (ec *executionContext) _Mutation_createWord(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateWord(rctx, fc.Args["polish"].(string), fc.Args["translations"].([]*model.NewTranslation))
+		return ec.resolvers.Mutation().CreateWord(rctx, fc.Args["polish"].(string), fc.Args["translation"].(model.NewTranslation))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createWord(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createWord_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createSentence(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createSentence(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateSentence(rctx, fc.Args["polish"].(string), fc.Args["english"].(string), fc.Args["sentence"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createSentence(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createSentence_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createTranslation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createTranslation(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateTranslation(rctx, fc.Args["polish"].(string), fc.Args["translation"].(model.NewTranslation))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createTranslation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createTranslation_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteSentence(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteSentence(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteSentence(rctx, fc.Args["polish"].(string), fc.Args["english"].(string), fc.Args["sentence"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteSentence(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteSentence_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteTranslation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteTranslation(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteTranslation(rctx, fc.Args["polish"].(string), fc.Args["english"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteTranslation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteTranslation_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteWord(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteWord(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteWord(rctx, fc.Args["polish"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteWord(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteWord_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateWord(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateWord(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateWord(rctx, fc.Args["polish"].(string), fc.Args["newPolish"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateWord(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateWord_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateTranslation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateTranslation(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateTranslation(rctx, fc.Args["polish"].(string), fc.Args["english"].(string), fc.Args["newEnglish"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateTranslation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateTranslation_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateSentence(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateSentence(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateSentence(rctx, fc.Args["polish"].(string), fc.Args["english"].(string), fc.Args["sentence"].(string), fc.Args["newSentence"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateSentence(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateSentence_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_selectWord(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_selectWord(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().SelectWord(rctx, fc.Args["polish"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -491,12 +1526,12 @@ func (ec *executionContext) _Mutation_createWord(ctx context.Context, field grap
 	}
 	res := resTmp.(*model.Word)
 	fc.Result = res
-	return ec.marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWord(ctx, field.Selections, res)
+	return ec.marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐWord(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_createWord(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_selectWord(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "Mutation",
+		Object:     "Query",
 		Field:      field,
 		IsMethod:   true,
 		IsResolver: true,
@@ -519,61 +1554,9 @@ func (ec *executionContext) fieldContext_Mutation_createWord(ctx context.Context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createWord_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_selectWord_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_words(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_words(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Words(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Word)
-	fc.Result = res
-	return ec.marshalNWord2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWordᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Query_words(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Word_id(ctx, field)
-			case "polish":
-				return ec.fieldContext_Word_polish(ctx, field)
-			case "translations":
-				return ec.fieldContext_Word_translations(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Word", field.Name)
-		},
 	}
 	return fc, nil
 }
@@ -913,7 +1896,7 @@ func (ec *executionContext) _Translation_sentences(ctx context.Context, field gr
 	}
 	res := resTmp.([]*model.Sentence)
 	fc.Result = res
-	return ec.marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐSentenceᚄ(ctx, field.Selections, res)
+	return ec.marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐSentenceᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Translation_sentences(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1051,7 +2034,7 @@ func (ec *executionContext) _Word_translations(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*model.Translation)
 	fc.Result = res
-	return ec.marshalNTranslation2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐTranslationᚄ(ctx, field.Selections, res)
+	return ec.marshalNTranslation2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐTranslationᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Word_translations(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3094,6 +4077,62 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "createSentence":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createSentence(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createTranslation":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createTranslation(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteSentence":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteSentence(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteTranslation":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteTranslation(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteWord":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteWord(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateWord":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateWord(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateTranslation":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateTranslation(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateSentence":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateSentence(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3136,7 +4175,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "words":
+		case "selectWord":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -3145,7 +4184,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_words(ctx, field)
+				res = ec._Query_selectWord(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -3696,29 +4735,12 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNNewTranslation2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslationᚄ(ctx context.Context, v any) ([]*model.NewTranslation, error) {
-	var vSlice []any
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
-	var err error
-	res := make([]*model.NewTranslation, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNNewTranslation2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslation(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) unmarshalNNewTranslation2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslation(ctx context.Context, v any) (*model.NewTranslation, error) {
+func (ec *executionContext) unmarshalNNewTranslation2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐNewTranslation(ctx context.Context, v any) (model.NewTranslation, error) {
 	res, err := ec.unmarshalInputNewTranslation(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐSentenceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Sentence) graphql.Marshaler {
+func (ec *executionContext) marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐSentenceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Sentence) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3742,7 +4764,7 @@ func (ec *executionContext) marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDi
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNSentence2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐSentence(ctx, sel, v[i])
+			ret[i] = ec.marshalNSentence2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐSentence(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3762,7 +4784,7 @@ func (ec *executionContext) marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDi
 	return ret
 }
 
-func (ec *executionContext) marshalNSentence2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐSentence(ctx context.Context, sel ast.SelectionSet, v *model.Sentence) graphql.Marshaler {
+func (ec *executionContext) marshalNSentence2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐSentence(ctx context.Context, sel ast.SelectionSet, v *model.Sentence) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -3819,7 +4841,7 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) marshalNTranslation2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐTranslationᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Translation) graphql.Marshaler {
+func (ec *executionContext) marshalNTranslation2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐTranslationᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Translation) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3843,7 +4865,7 @@ func (ec *executionContext) marshalNTranslation2ᚕᚖgithubᚗcomᚋstaszkiet�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTranslation2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐTranslation(ctx, sel, v[i])
+			ret[i] = ec.marshalNTranslation2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐTranslation(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3863,7 +4885,7 @@ func (ec *executionContext) marshalNTranslation2ᚕᚖgithubᚗcomᚋstaszkiet�
 	return ret
 }
 
-func (ec *executionContext) marshalNTranslation2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐTranslation(ctx context.Context, sel ast.SelectionSet, v *model.Translation) graphql.Marshaler {
+func (ec *executionContext) marshalNTranslation2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐTranslation(ctx context.Context, sel ast.SelectionSet, v *model.Translation) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -3873,55 +4895,11 @@ func (ec *executionContext) marshalNTranslation2ᚖgithubᚗcomᚋstaszkietᚋDi
 	return ec._Translation(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNWord2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWord(ctx context.Context, sel ast.SelectionSet, v model.Word) graphql.Marshaler {
+func (ec *executionContext) marshalNWord2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐWord(ctx context.Context, sel ast.SelectionSet, v model.Word) graphql.Marshaler {
 	return ec._Word(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNWord2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWordᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Word) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWord(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWord(ctx context.Context, sel ast.SelectionSet, v *model.Word) graphql.Marshaler {
+func (ec *executionContext) marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐWord(ctx context.Context, sel ast.SelectionSet, v *model.Word) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
