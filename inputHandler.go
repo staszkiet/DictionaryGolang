@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 )
 
 type SelectResponse struct {
@@ -37,16 +39,29 @@ func ListenForInput() {
 		if action == "exit" {
 			break
 		}
-		command, exists := commands.GetCommand(action)
+		parsed := ParseInput(action)
+		command, exists := commands.GetCommand(parsed[0])
 		if exists {
-			fmt.Println("podaj polską część tłumaczenia")
-			polish := reader.Read()
-			fmt.Println(polish)
-			if err := command.Execute(polish); err != nil {
+			if err := command.Execute(parsed[1:]); err != nil {
 				fmt.Println(err)
 			}
 		} else {
 			fmt.Println("Podane działanie nie istnieje")
 		}
 	}
+}
+
+func ParseInput(input string) []string {
+	pattern := `\([^\(\)]+\)|\S+`
+	re := regexp.MustCompile(pattern)
+
+	matches := re.FindAllString(input, -1)
+
+	for i, match := range matches {
+		if strings.HasPrefix(match, "(") && strings.HasSuffix(match, ")") {
+			matches[i] = match[1 : len(match)-1]
+		}
+	}
+
+	return matches
 }

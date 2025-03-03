@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/machinebox/graphql"
@@ -9,7 +8,7 @@ import (
 )
 
 type ICommand interface {
-	Execute(polish string) error
+	Execute(input []string) error
 }
 
 type AddSentenceCommand struct {
@@ -103,7 +102,9 @@ func (f *CommandFactory) GetCommand(action string) (ICommand, bool) {
 	return command, exists
 }
 
-func (s SelectWordCommand) Execute(polish string) error {
+func (s SelectWordCommand) Execute(input []string) error {
+
+	polish := input[0]
 
 	graphqlClient := GetClientInstance()
 
@@ -111,7 +112,7 @@ func (s SelectWordCommand) Execute(polish string) error {
 
 	var graphqlResponse SelectResponse
 
-	if err := graphqlClient.client.Run(context.Background(), s.request, &graphqlResponse); err != nil {
+	if err := graphqlClient.Request(s.request, &graphqlResponse); err != nil {
 		return err
 	}
 
@@ -120,16 +121,14 @@ func (s SelectWordCommand) Execute(polish string) error {
 	return nil
 }
 
-func (u UpdateSentenceCommand) Execute(polish string) error {
+func (u UpdateSentenceCommand) Execute(input []string) error {
 
-	reader := GetReaderInstance()
+	polish := input[0]
+	English := input[1]
+	Sentence := input[2]
+	newSentence := input[3]
+
 	graphqlClient := GetClientInstance()
-	fmt.Println("tłumaczenie:")
-	English := reader.Read()
-	fmt.Println("zdanie:")
-	Sentence := reader.Read()
-	fmt.Println("nowe zdanie:")
-	newSentence := reader.Read()
 	u.request.Var("polish", polish)
 	u.request.Var("english", English)
 	u.request.Var("sentence", Sentence)
@@ -144,14 +143,11 @@ func (u UpdateSentenceCommand) Execute(polish string) error {
 	return nil
 }
 
-func (u UpdateTranslationCommand) Execute(polish string) error {
-
-	reader := GetReaderInstance()
+func (u UpdateTranslationCommand) Execute(input []string) error {
+	polish := input[0]
+	English := input[1]
+	newEnglish := input[2]
 	graphqlClient := GetClientInstance()
-	fmt.Println("tłumaczenie:")
-	English := reader.Read()
-	fmt.Println("nowe tlumaczenie:")
-	newEnglish := reader.Read()
 	u.request.Var("polish", polish)
 	u.request.Var("english", English)
 	u.request.Var("newEnglish", newEnglish)
@@ -165,12 +161,11 @@ func (u UpdateTranslationCommand) Execute(polish string) error {
 	return nil
 }
 
-func (u UpdateWordCommand) Execute(polish string) error {
+func (u UpdateWordCommand) Execute(input []string) error {
 
-	reader := GetReaderInstance()
 	graphqlClient := GetClientInstance()
-	fmt.Println("nowe słowo:")
-	newPolish := reader.Read()
+	polish := input[0]
+	newPolish := input[1]
 	u.request.Var("polish", polish)
 	u.request.Var("newPolish", newPolish)
 
@@ -183,9 +178,10 @@ func (u UpdateWordCommand) Execute(polish string) error {
 	return nil
 }
 
-func (d DeleteWordCommand) Execute(polish string) error {
-	graphqlClient := GetClientInstance()
+func (d DeleteWordCommand) Execute(input []string) error {
 
+	graphqlClient := GetClientInstance()
+	polish := input[0]
 	d.request.Var("polish", polish)
 
 	var graphqlResponse interface{}
@@ -197,23 +193,15 @@ func (d DeleteWordCommand) Execute(polish string) error {
 	return nil
 }
 
-func (a AddWordCommand) Execute(polish string) error {
-	var translation, sentence string
-	reader := GetReaderInstance()
+func (a AddWordCommand) Execute(input []string) error {
+
 	sentences := []string{}
 
 	graphqlClient := GetClientInstance()
-
-	fmt.Println("translation:")
-
-	translation = reader.Read()
-	fmt.Println("example sentences:")
-	for {
-		sentence = reader.Read()
-		if sentence == "" {
-			break
-		}
-		sentences = append(sentences, sentence)
+	polish := input[0]
+	translation := input[1]
+	for i := 2; i < len(input); i++ {
+		sentences = append(sentences, input[i])
 	}
 
 	a.request.Var("polish", polish)
@@ -229,10 +217,9 @@ func (a AddWordCommand) Execute(polish string) error {
 	return nil
 }
 
-func (d DeleteTranslationCommand) Execute(polish string) error {
-	reader := GetReaderInstance()
-	fmt.Println("translation:")
-	translation := reader.Read()
+func (d DeleteTranslationCommand) Execute(input []string) error {
+	polish := input[0]
+	translation := input[1]
 	graphqlClient := GetClientInstance()
 
 	d.request.Var("polish", polish)
@@ -247,23 +234,18 @@ func (d DeleteTranslationCommand) Execute(polish string) error {
 	return nil
 }
 
-func (a AddTranslationCommand) Execute(polish string) error {
-	var translation, sentence string
-	reader := GetReaderInstance()
-	sentences := []string{}
+func (a AddTranslationCommand) Execute(input []string) error {
 
+	sentences := []string{}
+	polish := input[0]
 	graphqlClient := GetClientInstance()
 
 	fmt.Println("translation:")
 
-	translation = reader.Read()
+	translation := input[1]
 	fmt.Println("example sentences:")
-	for {
-		sentence = reader.Read()
-		if sentence == "" {
-			break
-		}
-		sentences = append(sentences, sentence)
+	for i := 2; i < len(input); i++ {
+		sentences = append(sentences, input[i])
 	}
 
 	a.request.Var("polish", polish)
@@ -279,12 +261,11 @@ func (a AddTranslationCommand) Execute(polish string) error {
 	return nil
 }
 
-func (d DeleteSentenceCommand) Execute(polish string) error {
-	reader := GetReaderInstance()
-	fmt.Println("translation:")
-	translation := reader.Read()
-	fmt.Println("sentence:")
-	sentence := reader.Read()
+func (d DeleteSentenceCommand) Execute(input []string) error {
+
+	polish := input[0]
+	translation := input[1]
+	sentence := input[2]
 	graphqlClient := GetClientInstance()
 
 	d.request.Var("polish", polish)
@@ -300,12 +281,11 @@ func (d DeleteSentenceCommand) Execute(polish string) error {
 	return nil
 }
 
-func (a AddSentenceCommand) Execute(polish string) error {
-	reader := GetReaderInstance()
-	fmt.Println("translation:")
-	translation := reader.Read()
-	fmt.Println("sentence:")
-	sentence := reader.Read()
+func (a AddSentenceCommand) Execute(input []string) error {
+
+	polish := input[0]
+	translation := input[1]
+	sentence := input[2]
 	graphqlClient := GetClientInstance()
 
 	a.request.Var("polish", polish)
