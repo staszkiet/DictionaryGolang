@@ -8,7 +8,7 @@ import (
 	"context"
 
 	dbmodels "github.com/staszkiet/DictionaryGolang/database/models"
-	"github.com/staszkiet/DictionaryGolang/graph/model"
+	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 )
 
 // CreateWord is the resolver for the createWord field.

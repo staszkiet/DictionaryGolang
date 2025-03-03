@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/machinebox/graphql"
-	"github.com/staszkiet/DictionaryGolang/graph/model"
+	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 )
 
 type ICommand interface {
