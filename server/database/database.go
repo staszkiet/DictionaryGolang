@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	dbmodels "github.com/staszkiet/DictionaryGolang/database/models"
+	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

@@ -1,7 +1,7 @@
 package dbmodels
 
 import (
-	"github.com/staszkiet/DictionaryGolang/graph/model"
+	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 )
 
 type Word struct {

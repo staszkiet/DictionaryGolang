@@ -509,7 +509,7 @@ func (ec *executionContext) field_Mutation_createTranslation_argsTranslation(
 ) (model.NewTranslation, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("translation"))
 	if tmp, ok := rawArgs["translation"]; ok {
-		return ec.unmarshalNNewTranslation2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslation(ctx, tmp)
+		return ec.unmarshalNNewTranslation2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐNewTranslation(ctx, tmp)
 	}
 
 	var zeroVal model.NewTranslation
@@ -550,7 +550,7 @@ func (ec *executionContext) field_Mutation_createWord_argsTranslation(
 ) (model.NewTranslation, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("translation"))
 	if tmp, ok := rawArgs["translation"]; ok {
-		return ec.unmarshalNNewTranslation2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslation(ctx, tmp)
+		return ec.unmarshalNNewTranslation2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐNewTranslation(ctx, tmp)
 	}
 
 	var zeroVal model.NewTranslation
@@ -1526,7 +1526,7 @@ func (ec *executionContext) _Query_selectWord(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.Word)
 	fc.Result = res
-	return ec.marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWord(ctx, field.Selections, res)
+	return ec.marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐWord(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_selectWord(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1896,7 +1896,7 @@ func (ec *executionContext) _Translation_sentences(ctx context.Context, field gr
 	}
 	res := resTmp.([]*model.Sentence)
 	fc.Result = res
-	return ec.marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐSentenceᚄ(ctx, field.Selections, res)
+	return ec.marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐSentenceᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Translation_sentences(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2034,7 +2034,7 @@ func (ec *executionContext) _Word_translations(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*model.Translation)
 	fc.Result = res
-	return ec.marshalNTranslation2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐTranslationᚄ(ctx, field.Selections, res)
+	return ec.marshalNTranslation2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐTranslationᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Word_translations(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4735,12 +4735,12 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNNewTranslation2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐNewTranslation(ctx context.Context, v any) (model.NewTranslation, error) {
+func (ec *executionContext) unmarshalNNewTranslation2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐNewTranslation(ctx context.Context, v any) (model.NewTranslation, error) {
 	res, err := ec.unmarshalInputNewTranslation(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐSentenceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Sentence) graphql.Marshaler {
+func (ec *executionContext) marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐSentenceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Sentence) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4764,7 +4764,7 @@ func (ec *executionContext) marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDi
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNSentence2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐSentence(ctx, sel, v[i])
+			ret[i] = ec.marshalNSentence2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐSentence(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4784,7 +4784,7 @@ func (ec *executionContext) marshalNSentence2ᚕᚖgithubᚗcomᚋstaszkietᚋDi
 	return ret
 }
 
-func (ec *executionContext) marshalNSentence2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐSentence(ctx context.Context, sel ast.SelectionSet, v *model.Sentence) graphql.Marshaler {
+func (ec *executionContext) marshalNSentence2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐSentence(ctx context.Context, sel ast.SelectionSet, v *model.Sentence) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -4841,7 +4841,7 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) marshalNTranslation2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐTranslationᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Translation) graphql.Marshaler {
+func (ec *executionContext) marshalNTranslation2ᚕᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐTranslationᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Translation) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4865,7 +4865,7 @@ func (ec *executionContext) marshalNTranslation2ᚕᚖgithubᚗcomᚋstaszkiet�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTranslation2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐTranslation(ctx, sel, v[i])
+			ret[i] = ec.marshalNTranslation2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐTranslation(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4885,7 +4885,7 @@ func (ec *executionContext) marshalNTranslation2ᚕᚖgithubᚗcomᚋstaszkiet�
 	return ret
 }
 
-func (ec *executionContext) marshalNTranslation2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐTranslation(ctx context.Context, sel ast.SelectionSet, v *model.Translation) graphql.Marshaler {
+func (ec *executionContext) marshalNTranslation2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐTranslation(ctx context.Context, sel ast.SelectionSet, v *model.Translation) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -4895,11 +4895,11 @@ func (ec *executionContext) marshalNTranslation2ᚖgithubᚗcomᚋstaszkietᚋDi
 	return ec._Translation(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNWord2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWord(ctx context.Context, sel ast.SelectionSet, v model.Word) graphql.Marshaler {
+func (ec *executionContext) marshalNWord2githubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐWord(ctx context.Context, sel ast.SelectionSet, v model.Word) graphql.Marshaler {
 	return ec._Word(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋgraphᚋmodelᚐWord(ctx context.Context, sel ast.SelectionSet, v *model.Word) graphql.Marshaler {
+func (ec *executionContext) marshalNWord2ᚖgithubᚗcomᚋstaszkietᚋDictionaryGolangᚋserverᚋgraphᚋmodelᚐWord(ctx context.Context, sel ast.SelectionSet, v *model.Word) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")

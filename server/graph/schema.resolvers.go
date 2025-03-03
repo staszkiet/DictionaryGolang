@@ -7,13 +7,12 @@ package graph
 import (
 	"context"
 
-	dbmodels "github.com/staszkiet/DictionaryGolang/database/models"
+	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
 	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 )
 
 // CreateWord is the resolver for the createWord field.
 func (r *mutationResolver) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
-
 	sentences := make([]dbmodels.Sentence, 0)
 
 	for _, s := range translation.Sentences {
@@ -88,7 +87,6 @@ func (r *mutationResolver) CreateSentence(ctx context.Context, polish string, en
 
 // CreateTranslation is the resolver for the createTranslation field.
 func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
-
 	var word dbmodels.Word
 	sentences := make([]dbmodels.Sentence, 0)
 
@@ -256,7 +254,6 @@ func (r *mutationResolver) UpdateWord(ctx context.Context, polish string, newPol
 
 // UpdateTranslation is the resolver for the updateTranslation field.
 func (r *mutationResolver) UpdateTranslation(ctx context.Context, polish string, english string, newEnglish string) (bool, error) {
-
 	var translation dbmodels.Translation
 
 	tx := r.DB.Begin()
@@ -289,7 +286,6 @@ func (r *mutationResolver) UpdateTranslation(ctx context.Context, polish string,
 
 // UpdateSentence is the resolver for the updateSentence field.
 func (r *mutationResolver) UpdateSentence(ctx context.Context, polish string, english string, sentence string, newSentence string) (bool, error) {
-
 	var s dbmodels.Sentence
 
 	tx := r.DB.Begin()
