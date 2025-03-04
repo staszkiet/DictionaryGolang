@@ -6,13 +6,9 @@ package graph
 
 import (
 	"context"
-	"errors"
 
-	"github.com/staszkiet/DictionaryGolang/server/database"
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
-	customerrors "github.com/staszkiet/DictionaryGolang/server/errors"
 	"github.com/staszkiet/DictionaryGolang/server/graph/model"
-	"gorm.io/gorm"
 )
 
 // CreateWord is the resolver for the createWord field.
@@ -48,9 +44,6 @@ func (r *mutationResolver) CreateWord(ctx context.Context, polish string, transl
 
 	if err := tx.Create(ret).Error; err != nil {
 		tx.Rollback()
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return false, customerrors.WordExistsError{Word: polish}
-		}
 		return false, err
 	}
 
@@ -86,9 +79,6 @@ func (r *mutationResolver) CreateSentence(ctx context.Context, polish string, en
 
 	if err = tx.Save(word).Error; err != nil {
 		tx.Rollback()
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return false, customerrors.SentenceExistsError{Word: polish, Translation: english, Sentence: sentence}
-		}
 		return false, err
 	}
 
@@ -127,9 +117,6 @@ func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string,
 
 	if err = tx.Save(word).Error; err != nil {
 		tx.Rollback()
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return false, customerrors.TranslationExistsError{Word: polish, Translation: translation.English}
-		}
 		return false, err
 	}
 
@@ -138,7 +125,6 @@ func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string,
 
 // DeleteSentence is the resolver for the deleteSentence field.
 func (r *mutationResolver) DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
-
 	var s dbmodels.Sentence
 
 	tx := r.DB.Begin()
@@ -157,10 +143,6 @@ func (r *mutationResolver) DeleteSentence(ctx context.Context, polish string, en
 		Where("words.polish = ? AND translations.english = ? AND sentences.sentence = ?", polish, english, sentence).
 		First(&s).Error
 	if err != nil {
-		tx.Rollback()
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, database.CheckWhichDoesntExits(database.ErrorOptions{Polish: polish, English: english, Sentence: sentence}, r.DB)
-		}
 		return false, err
 	}
 
@@ -192,10 +174,6 @@ func (r *mutationResolver) DeleteTranslation(ctx context.Context, polish string,
 		Where("words.polish = ? AND translations.english = ?", polish, english).
 		First(&translation).Error
 	if err != nil {
-		tx.Rollback()
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, database.CheckWhichDoesntExits(database.ErrorOptions{Polish: polish, English: english}, r.DB)
-		}
 		return false, err
 	}
 
@@ -235,9 +213,6 @@ func (r *mutationResolver) DeleteWord(ctx context.Context, polish string) (bool,
 	}
 
 	if err := tx.Where("polish = ?", polish).First(&word).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, customerrors.WordNotExistsError{Word: polish}
-		}
 		return false, err
 	}
 
@@ -266,10 +241,6 @@ func (r *mutationResolver) UpdateWord(ctx context.Context, polish string, newPol
 
 	err := tx.Model(&dbmodels.Word{}).Where("polish = ?", polish).First(&word).Error
 	if err != nil {
-		tx.Rollback()
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, customerrors.WordNotExistsError{Word: polish}
-		}
 		return false, err
 	}
 
@@ -301,10 +272,6 @@ func (r *mutationResolver) UpdateTranslation(ctx context.Context, polish string,
 		First(&translation).Error
 
 	if err != nil {
-		tx.Rollback()
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, database.CheckWhichDoesntExits(database.ErrorOptions{Polish: polish, English: english}, r.DB)
-		}
 		return false, err
 	}
 
@@ -338,9 +305,6 @@ func (r *mutationResolver) UpdateSentence(ctx context.Context, polish string, en
 		First(&s).Error
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, database.CheckWhichDoesntExits(database.ErrorOptions{Polish: polish, English: english, Sentence: sentence}, r.DB)
-		}
 		return false, err
 	}
 
@@ -357,25 +321,11 @@ func (r *mutationResolver) UpdateSentence(ctx context.Context, polish string, en
 func (r *queryResolver) SelectWord(ctx context.Context, polish string) (*model.Word, error) {
 	var word dbmodels.Word
 
-	tx := r.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	if err := tx.Error; err != nil {
+	if err := r.DB.Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error; err != nil {
 		return nil, err
 	}
 
-	if err := tx.Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, customerrors.WordNotExistsError{Word: polish}
-		}
-		return nil, err
-	}
-
-	return dbmodels.DBWordToGQLWord(&word), tx.Commit().Error
+	return dbmodels.DBWordToGQLWord(&word), nil
 }
 
 // Mutation returns MutationResolver implementation.
