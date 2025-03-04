@@ -58,7 +58,7 @@ type CommandFactory struct {
 func NewCommandFactory() *CommandFactory {
 	return &CommandFactory{
 		commands: map[string]ICommand{
-			"ADD TRANSLATION": &AddTranslationCommand{request: graphql.NewRequest(`
+			"ADD_TRANSLATION": &AddTranslationCommand{request: graphql.NewRequest(`
 				mutation CreateTranslation($polish: String!, $translation: NewTranslation!) {
 			createTranslation(polish: $polish, translation: $translation)}`)},
 
@@ -66,15 +66,15 @@ func NewCommandFactory() *CommandFactory {
 			mutation CreateWord($polish: String!, $translation: NewTranslation!) {
 		createWord(polish: $polish, translation: $translation)}`)},
 
-			"DELETE TRANSLATION": &DeleteTranslationCommand{request: graphql.NewRequest(`
+			"DELETE_TRANSLATION": &DeleteTranslationCommand{request: graphql.NewRequest(`
 				mutation deleteTranslation($polish: String!, $english: String!) 
 				{deleteTranslation(polish: $polish, english: $english)}`)},
 
-			"ADD SENTENCE": &AddSentenceCommand{request: graphql.NewRequest(`
+			"ADD_SENTENCE": &AddSentenceCommand{request: graphql.NewRequest(`
 			mutation createSentence($polish: String!, $english: String!, $sentence: String!) {
 			createSentence(polish: $polish, english: $english, sentence: $sentence)}`)},
 
-			"DELETE SENTENCE": &DeleteSentenceCommand{request: graphql.NewRequest(`
+			"DELETE_SENTENCE": &DeleteSentenceCommand{request: graphql.NewRequest(`
 			mutation deleteSentence($polish: String!, $english: String!, $sentence: String!) {
 			deleteSentence(polish: $polish, english: $english, sentence: $sentence)}`)},
 
@@ -87,10 +87,10 @@ func NewCommandFactory() *CommandFactory {
 
 			"UPDATE": &UpdateWordCommand{request: graphql.NewRequest(`mutation UpdateWord($polish: String!, $newPolish: String!) 
 			{updateWord(polish: $polish, newPolish: $newPolish)}`)},
-			"UPDATE TRANSLATION": &UpdateTranslationCommand{request: graphql.NewRequest(
+			"UPDATE_TRANSLATION": &UpdateTranslationCommand{request: graphql.NewRequest(
 				`mutation UpdateTranslation($polish: String!, $english: String!, $newEnglish: String!) 
 			{updateTranslation(polish: $polish, english: $english, newEnglish: $newEnglish)}`)},
-			"UPDATE SENTENCE": &UpdateSentenceCommand{request: graphql.NewRequest(
+			"UPDATE_SENTENCE": &UpdateSentenceCommand{request: graphql.NewRequest(
 				`mutation UpdateSentence($polish: String!, $english: String!, $sentence: String! ,$newSentence: String!) 
 			{updateSentence(polish: $polish, english: $english, sentence: $sentence ,newSentence: $newSentence)}`)},
 		},
