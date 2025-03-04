@@ -104,6 +104,10 @@ func (f *CommandFactory) GetCommand(action string) (ICommand, bool) {
 
 func (s SelectWordCommand) Execute(input []string) error {
 
+	if len(input) != 1 {
+		return fmt.Errorf(`niepoprawna liczba argumentów dla operacji select. Użycie: SELECT polskie_słowo`)
+	}
+
 	polish := input[0]
 
 	graphqlClient := GetClientInstance()
@@ -122,6 +126,10 @@ func (s SelectWordCommand) Execute(input []string) error {
 }
 
 func (u UpdateSentenceCommand) Execute(input []string) error {
+
+	if len(input) != 4 {
+		return fmt.Errorf("niepoprawna liczba argumentów dla operacji zmodyfikuj zdanie. Użycie: UPDATE_SENTENCE polskie_słowo tłumaczenie stare_zdanie nowe_zdanie")
+	}
 
 	polish := input[0]
 	English := input[1]
@@ -144,6 +152,11 @@ func (u UpdateSentenceCommand) Execute(input []string) error {
 }
 
 func (u UpdateTranslationCommand) Execute(input []string) error {
+
+	if len(input) != 3 {
+		return fmt.Errorf("niepoprawna liczba argumentów dla operacji zmodyfikuj tłumaczenie. Użycie: UPDATE_TRANSLATION polskie_słowo stare_tłumaczenie nowe_tłumaczenie")
+	}
+
 	polish := input[0]
 	English := input[1]
 	newEnglish := input[2]
@@ -163,6 +176,10 @@ func (u UpdateTranslationCommand) Execute(input []string) error {
 
 func (u UpdateWordCommand) Execute(input []string) error {
 
+	if len(input) != 2 {
+		return fmt.Errorf("niepoprawna liczba argumentów dla operacji zmodyfikuj słowo. Użycie: UPDATE stare_polskie_słowo nowe_polskie_słowo")
+	}
+
 	graphqlClient := GetClientInstance()
 	polish := input[0]
 	newPolish := input[1]
@@ -180,6 +197,10 @@ func (u UpdateWordCommand) Execute(input []string) error {
 
 func (d DeleteWordCommand) Execute(input []string) error {
 
+	if len(input) != 1 {
+		return fmt.Errorf("niepoprawna liczba argumentów dla operacji usuń słowo. Użycie: DELETE polskie_słowo")
+	}
+
 	graphqlClient := GetClientInstance()
 	polish := input[0]
 	d.request.Var("polish", polish)
@@ -194,6 +215,10 @@ func (d DeleteWordCommand) Execute(input []string) error {
 }
 
 func (a AddWordCommand) Execute(input []string) error {
+
+	if len(input) < 2 {
+		return fmt.Errorf("niepoprawna liczba argumentów dla operacji dodaj słowo. Użycie: ADD polskie_słowo tłumaczenie przykładowe_zdanie_1, przykładowe_zdanie_2 .... przykładowe_zdanie_N")
+	}
 
 	sentences := []string{}
 
@@ -218,6 +243,10 @@ func (a AddWordCommand) Execute(input []string) error {
 }
 
 func (d DeleteTranslationCommand) Execute(input []string) error {
+
+	if len(input) != 2 {
+		return fmt.Errorf("niepoprawna liczba argumentów dla operacji usuń tłumaczenie. Użycie: DELETE_TRANSLATION polskie_słowo tłumaczenie")
+	}
 	polish := input[0]
 	translation := input[1]
 	graphqlClient := GetClientInstance()
@@ -235,6 +264,10 @@ func (d DeleteTranslationCommand) Execute(input []string) error {
 }
 
 func (a AddTranslationCommand) Execute(input []string) error {
+
+	if len(input) < 2 {
+		return fmt.Errorf("niepoprawna liczba argumentów dla operacji dodaj tłumaczenie. Użycie: ADD_TRANSLATION polskie_słowo tłumaczenie przykładowe_zdanie_1, przykładowe_zdanie_2 .... przykładowe_zdanie_N")
+	}
 
 	sentences := []string{}
 	polish := input[0]
@@ -263,6 +296,10 @@ func (a AddTranslationCommand) Execute(input []string) error {
 
 func (d DeleteSentenceCommand) Execute(input []string) error {
 
+	if len(input) != 3 {
+		return fmt.Errorf("niepoprawna liczba argumentów dla operacji usuń zdanie. Użycie: DELETE_SENTENCE polskie_słowo tłumaczenie przykładowe_zdanie")
+	}
+
 	polish := input[0]
 	translation := input[1]
 	sentence := input[2]
@@ -282,6 +319,10 @@ func (d DeleteSentenceCommand) Execute(input []string) error {
 }
 
 func (a AddSentenceCommand) Execute(input []string) error {
+
+	if len(input) != 3 {
+		return fmt.Errorf("niepoprawna liczba argumentów dla operacji dodaj zdanie. Użycie: ADD_SENTENCE polskie_słowo tłumaczenie przykładowe_zdanie")
+	}
 
 	polish := input[0]
 	translation := input[1]
