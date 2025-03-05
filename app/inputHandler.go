@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -31,7 +33,7 @@ func PrintSelectOutput(response SelectResponse, polish string) {
 
 func ListenForInput() {
 	var action string
-	reader := GetReaderInstance()
+	reader := Reader{bufio.NewReader(os.Stdin)}
 	commands := NewCommandFactory()
 	fmt.Println("wybierz operację:\nADD - dodaj nowe słowo i jego tłumaczenie\nDELETE - usuń słowo\nSELECT - otrzymaj informacje o tłumaczeniu\n\nPolecenia modyfikujące istniejące tłumaczenia:\nADD TRANSLATION - dodaj tłumaczenie do słowa ze słownika\nDELETE TRANSLATION - usuń tłumaczenie\nADD SENTENCE - dodaj przykładowe zdanie do tłumaczenia\nDELETE SENTENCE - usuń przykładowe zdanie z danego tłumaczenia\nUPDATE - modyfikuje polską część\nUPDATE TRANSLATION - modyfikuje angielską częśc\nUPDATE SENTENCE - modyfikuje dane zdanie przykładowe")
 	for {

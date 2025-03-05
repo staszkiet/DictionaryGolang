@@ -19,7 +19,7 @@ const defaultPort = "8080"
 
 func main() {
 
-	db := database.ConnectDB()
+	db := database.NewDatabaseService()
 	resolver := &graph.Resolver{DB: db}
 
 	port := os.Getenv("PORT")
