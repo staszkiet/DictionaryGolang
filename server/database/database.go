@@ -13,7 +13,7 @@ import (
 )
 
 type DatabaseService struct {
-	repository *dictionaryRepository
+	repository IRepository
 }
 
 func NewDatabaseService() *DatabaseService {
@@ -38,6 +38,11 @@ func NewDatabaseService() *DatabaseService {
 	repo := &dictionaryRepository{db: db}
 	return &DatabaseService{repository: repo}
 
+}
+
+func NewMockedDatabaseService() *DatabaseService {
+
+	return &DatabaseService{repository: &MockRepository{}}
 }
 
 func (r *DatabaseService) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
