@@ -28,7 +28,8 @@ type IDictionary interface {
 }
 
 type DatabaseService struct {
-	DB *gorm.DB
+	queryHandler *dictionaryRepository
+	DB           *gorm.DB
 }
 
 func NewDatabaseService() *DatabaseService {
@@ -55,7 +56,7 @@ func NewDatabaseService() *DatabaseService {
 
 }
 
-func (r *DatabaseService) CreateWord(word *dbmodels.Word) (bool, error) {
+func (r *DatabaseService) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 
 	tx := r.DB.Begin()
 	defer func() {
@@ -68,11 +69,28 @@ func (r *DatabaseService) CreateWord(word *dbmodels.Word) (bool, error) {
 		return false, err
 	}
 
-	if err := tx.Create(word).Error; err != nil {
+	sentences := make([]dbmodels.Sentence, 0)
+
+	for _, s := range translation.Sentences {
+		sentences = append(sentences, dbmodels.Sentence{Sentence: s})
+	}
+
+	var convertedTranslations []dbmodels.Translation
+
+	convertedTranslations = append(convertedTranslations, dbmodels.Translation{
+		English:   translation.English,
+		Sentences: sentences,
+	})
+
+	word := &dbmodels.Word{
+		Polish:       polish,
+		Translations: convertedTranslations,
+	}
+
+	r.queryHandler.CreateWord(tx, word)
+
+	if err := r.queryHandler.CreateWord(tx, word); err != nil {
 		tx.Rollback()
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return false, customerrors.WordExistsError{Word: word.Polish}
-		}
 		return false, err
 	}
 
