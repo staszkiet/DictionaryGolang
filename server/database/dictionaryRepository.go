@@ -24,7 +24,7 @@ type IDatabase interface {
 }
 
 type dictionaryRepository struct {
-	DB *gorm.DB
+	db *gorm.DB
 }
 
 func (d *dictionaryRepository) CreateWord(tx *gorm.DB, word *dbmodels.Word) error {
@@ -66,35 +66,35 @@ func (d *dictionaryRepository) AddTranslation(tx *gorm.DB, word *dbmodels.Word, 
 	return nil
 }
 
-func (d *dictionaryRepository) CheckWhichDoesntExits(eo ErrorOptions, tx *gorm.DB) error {
-	var word dbmodels.Word
-	var translation dbmodels.Translation
-	var sentence dbmodels.Sentence
-	err := tx.Model(&dbmodels.Word{}).Where("polish = ?", eo.Polish).First(&word).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return customerrors.WordNotExistsError{Word: eo.Polish}
-		}
-		return err
-	}
-	err = tx.Model(&dbmodels.Translation{}).Where("english = ? AND word_id = ?", eo.English, word.ID).First(&translation).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return customerrors.TranslationNotExistsError{Word: eo.Polish, Translation: eo.English}
-		}
-		return err
-	}
-	if eo.Sentence != "" {
-		err = tx.Model(&dbmodels.Sentence{}).Where("sentence = ? AND translation_id = ?", eo.Sentence, translation.ID).First(&sentence).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return customerrors.SentenceNotExistsError{Word: eo.Polish, Translation: eo.English, Sentence: eo.Sentence}
-			}
-			return err
-		}
-	}
-	return fmt.Errorf("nieznany błąd")
-}
+// func (d *dictionaryRepository) CheckWhichDoesntExits(eo ErrorOptions, tx *gorm.DB) error {
+// 	var word dbmodels.Word
+// 	var translation dbmodels.Translation
+// 	var sentence dbmodels.Sentence
+// 	err := tx.Model(&dbmodels.Word{}).Where("polish = ?", eo.Polish).First(&word).Error
+// 	if err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return customerrors.WordNotExistsError{Word: eo.Polish}
+// 		}
+// 		return err
+// 	}
+// 	err = tx.Model(&dbmodels.Translation{}).Where("english = ? AND word_id = ?", eo.English, word.ID).First(&translation).Error
+// 	if err != nil {
+// 		if errors.Is(err, gorm.ErrRecordNotFound) {
+// 			return customerrors.TranslationNotExistsError{Word: eo.Polish, Translation: eo.English}
+// 		}
+// 		return err
+// 	}
+// 	if eo.Sentence != "" {
+// 		err = tx.Model(&dbmodels.Sentence{}).Where("sentence = ? AND translation_id = ?", eo.Sentence, translation.ID).First(&sentence).Error
+// 		if err != nil {
+// 			if errors.Is(err, gorm.ErrRecordNotFound) {
+// 				return customerrors.SentenceNotExistsError{Word: eo.Polish, Translation: eo.English, Sentence: eo.Sentence}
+// 			}
+// 			return err
+// 		}
+// 	}
+// 	return fmt.Errorf("nieznany błąd")
+// }
 
 func (d *dictionaryRepository) GetSentence(tx *gorm.DB, polish string, english string, sentence string, s *dbmodels.Sentence) error {
 
@@ -103,9 +103,6 @@ func (d *dictionaryRepository) GetSentence(tx *gorm.DB, polish string, english s
 		Where("words.polish = ? AND translations.english = ? AND sentences.sentence = ?", polish, english, sentence).
 		First(s).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return d.CheckWhichDoesntExits(ErrorOptions{Polish: polish, English: english, Sentence: sentence}, tx)
-		}
 		return err
 	}
 	return nil
@@ -124,9 +121,6 @@ func (d *dictionaryRepository) GetTranslation(tx *gorm.DB, polish string, englis
 		Where("words.polish = ? AND translations.english = ?", polish, english).
 		First(translation).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return d.CheckWhichDoesntExits(ErrorOptions{Polish: polish, English: english}, tx)
-		}
 		return err
 	}
 	return nil
@@ -162,30 +156,15 @@ func (d *dictionaryRepository) DeleteWord(tx *gorm.DB, polish string) error {
 			return customerrors.WordNotExistsError{Word: polish}
 		}
 		return err
+	} else if tx.RowsAffected < 1 {
+		return fmt.Errorf("rekord nie może zostać usunięty, gdyż nie ma go w słowniku")
 	}
 	return nil
 }
 
-func (d *dictionaryRepository) UpdateWord(tx *gorm.DB, word *dbmodels.Word, newPolish string) error {
+func (d *dictionaryRepository) Update(tx *gorm.DB, sentence interface{}, newSentence string, updateType string) error {
 
-	if err := tx.Model(word).Update("polish", newPolish).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *dictionaryRepository) UpdateTranslation(tx *gorm.DB, translation *dbmodels.Translation, newEnglish string) error {
-
-	err := tx.Model(translation).Update("english", newEnglish).Error
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *dictionaryRepository) UpdateSentence(tx *gorm.DB, sentence *dbmodels.Sentence, newSentence string) error {
-
-	err := tx.Model(sentence).Update("sentence", newSentence).Error
+	err := tx.Model(sentence).Update(updateType, newSentence).Error
 	if err != nil {
 		return err
 	}
@@ -194,7 +173,7 @@ func (d *dictionaryRepository) UpdateSentence(tx *gorm.DB, sentence *dbmodels.Se
 
 func (d *dictionaryRepository) WithTransaction(fn func(tx *gorm.DB) error) (bool, error) {
 
-	tx := d.DB.Begin()
+	tx := d.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -219,3 +198,9 @@ type ErrorOptions struct {
 	English  string
 	Sentence string
 }
+
+const (
+	Word        = "polish"
+	Translation = "english"
+	Sentence    = "sentence"
+)

@@ -13,7 +13,7 @@ import (
 )
 
 type DatabaseService struct {
-	queryHandler *dictionaryRepository
+	repository *dictionaryRepository
 }
 
 func NewDatabaseService() *DatabaseService {
@@ -35,14 +35,14 @@ func NewDatabaseService() *DatabaseService {
 	if err != nil {
 		log.Fatal("Failed to migrate")
 	}
-	qh := &dictionaryRepository{DB: db}
-	return &DatabaseService{queryHandler: qh}
+	repo := &dictionaryRepository{db: db}
+	return &DatabaseService{repository: repo}
 
 }
 
 func (r *DatabaseService) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 
-	return r.queryHandler.WithTransaction(func(tx *gorm.DB) error {
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		sentences := make([]dbmodels.Sentence, 0)
 
 		for _, s := range translation.Sentences {
@@ -61,8 +61,7 @@ func (r *DatabaseService) CreateWord(ctx context.Context, polish string, transla
 			Translations: convertedTranslations,
 		}
 
-		if err := r.queryHandler.CreateWord(tx, word); err != nil {
-			tx.Rollback()
+		if err := r.repository.CreateWord(tx, word); err != nil {
 			return err
 		}
 		return nil
@@ -72,10 +71,9 @@ func (r *DatabaseService) CreateWord(ctx context.Context, polish string, transla
 func (r *DatabaseService) CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
 	var word dbmodels.Word
 
-	return r.queryHandler.WithTransaction(func(tx *gorm.DB) error {
-		err := r.queryHandler.GetWord(tx, polish, &word)
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+		err := r.repository.GetWord(tx, polish, &word)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
@@ -85,8 +83,7 @@ func (r *DatabaseService) CreateSentence(ctx context.Context, polish string, eng
 			}
 		}
 
-		if err := r.queryHandler.AddSentence(tx, &word, english, sentence); err != nil {
-			tx.Rollback()
+		if err := r.repository.AddSentence(tx, &word, english, sentence); err != nil {
 			return err
 		}
 		return nil
@@ -96,16 +93,15 @@ func (r *DatabaseService) CreateSentence(ctx context.Context, polish string, eng
 
 func (r *DatabaseService) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 
-	return r.queryHandler.WithTransaction(func(tx *gorm.DB) error {
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		var word dbmodels.Word
 		sentences := make([]dbmodels.Sentence, 0)
 
 		for _, s := range translation.Sentences {
 			sentences = append(sentences, dbmodels.Sentence{Sentence: s})
 		}
-		err := r.queryHandler.GetWord(tx, polish, &word)
+		err := r.repository.GetWord(tx, polish, &word)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
@@ -114,8 +110,7 @@ func (r *DatabaseService) CreateTranslation(ctx context.Context, polish string, 
 			Sentences: sentences,
 		})
 
-		if err = r.queryHandler.AddTranslation(tx, &word, translation.English); err != nil {
-			tx.Rollback()
+		if err = r.repository.AddTranslation(tx, &word, translation.English); err != nil {
 			return err
 		}
 		return nil
@@ -125,16 +120,14 @@ func (r *DatabaseService) CreateTranslation(ctx context.Context, polish string, 
 
 func (r *DatabaseService) DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
 
-	return r.queryHandler.WithTransaction(func(tx *gorm.DB) error {
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		var s dbmodels.Sentence
-		err := r.queryHandler.GetSentence(tx, polish, english, sentence, &s)
+		err := r.repository.GetSentence(tx, polish, english, sentence, &s)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
-		if err := r.queryHandler.DeleteSentence(tx, s); err != nil {
-			tx.Rollback()
+		if err := r.repository.DeleteSentence(tx, s); err != nil {
 			return err
 		}
 		return nil
@@ -144,16 +137,14 @@ func (r *DatabaseService) DeleteSentence(ctx context.Context, polish string, eng
 
 func (r *DatabaseService) DeleteTranslation(ctx context.Context, polish string, english string) (bool, error) {
 
-	return r.queryHandler.WithTransaction(func(tx *gorm.DB) error {
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		var translation dbmodels.Translation
-		err := r.queryHandler.GetTranslation(tx, polish, english, &translation)
+		err := r.repository.GetTranslation(tx, polish, english, &translation)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
-		if err := r.queryHandler.DeleteTranslation(tx, &translation); err != nil {
-			tx.Rollback()
+		if err := r.repository.DeleteTranslation(tx, &translation); err != nil {
 			return err
 		}
 		return nil
@@ -163,9 +154,8 @@ func (r *DatabaseService) DeleteTranslation(ctx context.Context, polish string, 
 
 func (r *DatabaseService) DeleteWord(ctx context.Context, polish string) (bool, error) {
 
-	return r.queryHandler.WithTransaction(func(tx *gorm.DB) error {
-		if err := r.queryHandler.DeleteWord(tx, polish); err != nil {
-			tx.Rollback()
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+		if err := r.repository.DeleteWord(tx, polish); err != nil {
 			return err
 		}
 		return nil
@@ -174,16 +164,14 @@ func (r *DatabaseService) DeleteWord(ctx context.Context, polish string) (bool, 
 
 func (r *DatabaseService) UpdateWord(ctx context.Context, polish string, newPolish string) (bool, error) {
 
-	return r.queryHandler.WithTransaction(func(tx *gorm.DB) error {
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		var word dbmodels.Word
-		err := r.queryHandler.GetWord(tx, polish, &word)
+		err := r.repository.GetWord(tx, polish, &word)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
-		if err := r.queryHandler.UpdateWord(tx, &word, newPolish); err != nil {
-			tx.Rollback()
+		if err := r.repository.Update(tx, &word, newPolish, Word); err != nil {
 			return err
 		}
 		return nil
@@ -193,19 +181,17 @@ func (r *DatabaseService) UpdateWord(ctx context.Context, polish string, newPoli
 
 func (r *DatabaseService) UpdateTranslation(ctx context.Context, polish string, english string, newEnglish string) (bool, error) {
 
-	return r.queryHandler.WithTransaction(func(tx *gorm.DB) error {
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		var translation dbmodels.Translation
 
-		err := r.queryHandler.GetTranslation(tx, polish, english, &translation)
+		err := r.repository.GetTranslation(tx, polish, english, &translation)
 
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
-		err = r.queryHandler.UpdateTranslation(tx, &translation, newEnglish)
+		err = r.repository.Update(tx, &translation, newEnglish, Translation)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 		return nil
@@ -215,19 +201,17 @@ func (r *DatabaseService) UpdateTranslation(ctx context.Context, polish string, 
 
 func (r *DatabaseService) UpdateSentence(ctx context.Context, polish string, english string, sentence string, newSentence string) (bool, error) {
 
-	return r.queryHandler.WithTransaction(func(tx *gorm.DB) error {
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 
 		var s dbmodels.Sentence
-		err := r.queryHandler.GetSentence(tx, polish, english, sentence, &s)
+		err := r.repository.GetSentence(tx, polish, english, sentence, &s)
 
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 
-		err = r.queryHandler.UpdateSentence(tx, &s, newSentence)
+		err = r.repository.Update(tx, &s, newSentence, Sentence)
 		if err != nil {
-			tx.Rollback()
 			return err
 		}
 		return nil
@@ -238,9 +222,8 @@ func (r *DatabaseService) UpdateSentence(ctx context.Context, polish string, eng
 func (r *DatabaseService) SelectWord(ctx context.Context, polish string) (*model.Word, error) {
 	var word dbmodels.Word
 
-	r.queryHandler.WithTransaction(func(tx *gorm.DB) error {
-		if err := r.queryHandler.GetWord(tx, polish, &word); err != nil {
-			tx.Rollback()
+	r.repository.WithTransaction(func(tx *gorm.DB) error {
+		if err := r.repository.GetWord(tx, polish, &word); err != nil {
 			return err
 		}
 		return nil
