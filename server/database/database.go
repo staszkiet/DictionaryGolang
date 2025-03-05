@@ -1,19 +1,22 @@
 package database
 
 import (
-	"errors"
-	"fmt"
+	"context"
 	"log"
 	"os"
 
 	"github.com/joho/godotenv"
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
-	customerrors "github.com/staszkiet/DictionaryGolang/server/errors"
+	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func ConnectDB() *gorm.DB {
+type DatabaseService struct {
+	repository *dictionaryRepository
+}
+
+func NewDatabaseService() *DatabaseService {
 
 	var db *gorm.DB
 	err := godotenv.Load()
@@ -32,43 +35,198 @@ func ConnectDB() *gorm.DB {
 	if err != nil {
 		log.Fatal("Failed to migrate")
 	}
-
-	return db
+	repo := &dictionaryRepository{db: db}
+	return &DatabaseService{repository: repo}
 
 }
 
-type ErrorOptions struct {
-	Polish   string
-	English  string
-	Sentence string
-}
+func (r *DatabaseService) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 
-func CheckWhichDoesntExits(eo ErrorOptions, tx *gorm.DB) error {
-	var word dbmodels.Word
-	var translation dbmodels.Translation
-	var sentence dbmodels.Sentence
-	err := tx.Model(&dbmodels.Word{}).Where("polish = ?", eo.Polish).First(&word).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return customerrors.WordNotExistsError{Word: eo.Polish}
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+		sentences := make([]dbmodels.Sentence, 0)
+
+		for _, s := range translation.Sentences {
+			sentences = append(sentences, dbmodels.Sentence{Sentence: s})
 		}
-		return err
-	}
-	err = tx.Model(&dbmodels.Translation{}).Where("english = ? AND word_id = ?", eo.English, word.ID).First(&translation).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return customerrors.TranslationNotExistsError{Word: eo.Polish, Translation: eo.English}
+
+		var convertedTranslations []dbmodels.Translation
+
+		convertedTranslations = append(convertedTranslations, dbmodels.Translation{
+			English:   translation.English,
+			Sentences: sentences,
+		})
+
+		word := &dbmodels.Word{
+			Polish:       polish,
+			Translations: convertedTranslations,
 		}
-		return err
-	}
-	if eo.Sentence != "" {
-		err = tx.Model(&dbmodels.Sentence{}).Where("sentence = ? AND translation_id = ?", eo.Sentence, translation.ID).First(&sentence).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return customerrors.SentenceNotExistsError{Word: eo.Polish, Translation: eo.English, Sentence: eo.Sentence}
-			}
+
+		if err := r.repository.CreateWord(tx, word); err != nil {
 			return err
 		}
-	}
-	return fmt.Errorf("nieznany błąd")
+		return nil
+	})
+}
+
+func (r *DatabaseService) CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
+	var word dbmodels.Word
+
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+		err := r.repository.GetWord(tx, polish, &word)
+		if err != nil {
+			return err
+		}
+
+		for i, t := range word.Translations {
+			if t.English == english {
+				word.Translations[i].Sentences = append(word.Translations[i].Sentences, dbmodels.Sentence{Sentence: sentence})
+			}
+		}
+
+		if err := r.repository.AddSentence(tx, &word, english, sentence); err != nil {
+			return err
+		}
+		return nil
+	})
+
+}
+
+func (r *DatabaseService) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
+
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+		var word dbmodels.Word
+		sentences := make([]dbmodels.Sentence, 0)
+
+		for _, s := range translation.Sentences {
+			sentences = append(sentences, dbmodels.Sentence{Sentence: s})
+		}
+		err := r.repository.GetWord(tx, polish, &word)
+		if err != nil {
+			return err
+		}
+
+		word.Translations = append(word.Translations, dbmodels.Translation{
+			English:   translation.English,
+			Sentences: sentences,
+		})
+
+		if err = r.repository.AddTranslation(tx, &word, translation.English); err != nil {
+			return err
+		}
+		return nil
+	})
+
+}
+
+func (r *DatabaseService) DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
+
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+		var s dbmodels.Sentence
+		err := r.repository.GetSentence(tx, polish, english, sentence, &s)
+		if err != nil {
+			return err
+		}
+
+		if err := r.repository.DeleteSentence(tx, s); err != nil {
+			return err
+		}
+		return nil
+	})
+
+}
+
+func (r *DatabaseService) DeleteTranslation(ctx context.Context, polish string, english string) (bool, error) {
+
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+		var translation dbmodels.Translation
+		err := r.repository.GetTranslation(tx, polish, english, &translation)
+		if err != nil {
+			return err
+		}
+
+		if err := r.repository.DeleteTranslation(tx, &translation); err != nil {
+			return err
+		}
+		return nil
+	})
+
+}
+
+func (r *DatabaseService) DeleteWord(ctx context.Context, polish string) (bool, error) {
+
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+		if err := r.repository.DeleteWord(tx, polish); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (r *DatabaseService) UpdateWord(ctx context.Context, polish string, newPolish string) (bool, error) {
+
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+		var word dbmodels.Word
+		err := r.repository.GetWord(tx, polish, &word)
+		if err != nil {
+			return err
+		}
+
+		if err := r.repository.Update(tx, &word, newPolish, Word); err != nil {
+			return err
+		}
+		return nil
+	})
+
+}
+
+func (r *DatabaseService) UpdateTranslation(ctx context.Context, polish string, english string, newEnglish string) (bool, error) {
+
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+		var translation dbmodels.Translation
+
+		err := r.repository.GetTranslation(tx, polish, english, &translation)
+
+		if err != nil {
+			return err
+		}
+
+		err = r.repository.Update(tx, &translation, newEnglish, Translation)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+}
+
+func (r *DatabaseService) UpdateSentence(ctx context.Context, polish string, english string, sentence string, newSentence string) (bool, error) {
+
+	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+
+		var s dbmodels.Sentence
+		err := r.repository.GetSentence(tx, polish, english, sentence, &s)
+
+		if err != nil {
+			return err
+		}
+
+		err = r.repository.Update(tx, &s, newSentence, Sentence)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+}
+
+func (r *DatabaseService) SelectWord(ctx context.Context, polish string) (*model.Word, error) {
+	var word dbmodels.Word
+
+	r.repository.WithTransaction(func(tx *gorm.DB) error {
+		if err := r.repository.GetWord(tx, polish, &word); err != nil {
+			return err
+		}
+		return nil
+	})
+	return dbmodels.DBWordToGQLWord(&word), nil
 }
