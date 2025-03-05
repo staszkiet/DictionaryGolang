@@ -87,8 +87,6 @@ func (r *DatabaseService) CreateWord(ctx context.Context, polish string, transla
 		Translations: convertedTranslations,
 	}
 
-	r.queryHandler.CreateWord(tx, word)
-
 	if err := r.queryHandler.CreateWord(tx, word); err != nil {
 		tx.Rollback()
 		return false, err
@@ -111,23 +109,20 @@ func (r *DatabaseService) CreateSentence(ctx context.Context, polish string, eng
 		return false, err
 	}
 
-	err := tx.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+	err := r.queryHandler.GetWord(tx, polish, &word)
 	if err != nil {
+		tx.Rollback()
 		return false, err
 	}
 
 	for i, t := range word.Translations {
-
 		if t.English == english {
 			word.Translations[i].Sentences = append(word.Translations[i].Sentences, dbmodels.Sentence{Sentence: sentence})
 		}
 	}
 
-	if err = tx.Save(word).Error; err != nil {
+	if err := r.queryHandler.AddSentence(tx, &word, english, sentence); err != nil {
 		tx.Rollback()
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return false, customerrors.SentenceExistsError{Word: polish, Translation: english, Sentence: sentence}
-		}
 		return false, err
 	}
 
@@ -153,8 +148,9 @@ func (r *DatabaseService) CreateTranslation(ctx context.Context, polish string, 
 		return false, err
 	}
 
-	err := tx.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(&word).Error
+	err := r.queryHandler.GetWord(tx, polish, &word)
 	if err != nil {
+		tx.Rollback()
 		return false, err
 	}
 
@@ -163,11 +159,8 @@ func (r *DatabaseService) CreateTranslation(ctx context.Context, polish string, 
 		Sentences: sentences,
 	})
 
-	if err = tx.Save(word).Error; err != nil {
+	if err = r.queryHandler.AddTranslation(tx, &word, translation.English); err != nil {
 		tx.Rollback()
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return false, customerrors.TranslationExistsError{Word: polish, Translation: translation.English}
-		}
 		return false, err
 	}
 

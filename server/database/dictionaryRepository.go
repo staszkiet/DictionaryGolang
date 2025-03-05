@@ -34,3 +34,32 @@ func (d *dictionaryRepository) CreateWord(tx *gorm.DB, word *dbmodels.Word) erro
 	}
 	return nil
 }
+
+// TODO no record error handling
+func (d *dictionaryRepository) GetWord(tx *gorm.DB, polish string, word *dbmodels.Word) error {
+	err := tx.Model(&dbmodels.Word{}).Preload("Translations.Sentences").Where("polish = ?", polish).First(word).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *dictionaryRepository) AddSentence(tx *gorm.DB, word *dbmodels.Word, translation string, sentence string) error {
+	if err := tx.Save(word).Error; err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return customerrors.SentenceExistsError{Word: word.Polish, Translation: translation, Sentence: sentence}
+		}
+		return err
+	}
+	return nil
+}
+
+func (d *dictionaryRepository) AddTranslation(tx *gorm.DB, word *dbmodels.Word, translation string) error {
+	if err := tx.Save(word).Error; err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return customerrors.TranslationExistsError{Word: word.Polish, Translation: translation}
+		}
+		return err
+	}
+	return nil
+}
