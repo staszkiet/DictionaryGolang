@@ -66,6 +66,7 @@ func TestCreateTranslation_Success(t *testing.T) {
 	}
 
 	dbWord := &dbmodels.Word{
+		ID:     2,
 		Polish: "pisać",
 		Translations: []dbmodels.Translation{
 			{
@@ -78,25 +79,15 @@ func TestCreateTranslation_Success(t *testing.T) {
 		},
 	}
 
-	expectedWord := &dbmodels.Word{
-		Polish: "pisać",
-		Translations: []dbmodels.Translation{
-			{
-				English: "type",
-				Sentences: []dbmodels.Sentence{
-					{Sentence: "I often type"},
-					{Sentence: "What should I type?"},
-				},
-			},
-			{
-				English: "write",
-				Sentences: []dbmodels.Sentence{
-					{Sentence: "I write poems"},
-					{Sentence: "I write books"},
-				},
-			},
+	expectedTranslation := &dbmodels.Translation{
+		WordID:  2,
+		English: "write",
+		Sentences: []dbmodels.Sentence{
+			{Sentence: "I write poems"},
+			{Sentence: "I write books"},
 		},
 	}
+
 	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
 	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		wordArg := args.Get(1).(*dbmodels.Word)
@@ -106,9 +97,8 @@ func TestCreateTranslation_Success(t *testing.T) {
 	mockRepo.On("AddTranslation", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
-			wordArg := args.Get(1).(*dbmodels.Word)
-			assert.Equal(t, expectedWord.Polish, wordArg.Polish)
-			assert.ElementsMatch(t, expectedWord.Translations, wordArg.Translations)
+			wordArg := args.Get(2).(*dbmodels.Translation)
+			assert.Equal(t, expectedTranslation, wordArg)
 		})
 
 	success, err := dbService.CreateTranslation(context.Background(), polish, translation)
@@ -128,43 +118,30 @@ func TestCreateSentence_Success(t *testing.T) {
 	English := "book"
 	sentence := "I have never read a book"
 
-	dbWord := &dbmodels.Word{
-		Polish: "książka",
-		Translations: []dbmodels.Translation{
-			{
-				English: "book",
-				Sentences: []dbmodels.Sentence{
-					{Sentence: "I read a good book"},
-				},
-			},
+	dbTranslation := &dbmodels.Translation{
+		ID:      2,
+		English: "book",
+		Sentences: []dbmodels.Sentence{
+			{Sentence: "I read a good book"},
 		},
 	}
 
-	expectedWord := &dbmodels.Word{
-		Polish: "książka",
-		Translations: []dbmodels.Translation{
-			{
-				English: "book",
-				Sentences: []dbmodels.Sentence{
-					{Sentence: "I read a good book"},
-					{Sentence: "I have never read a book"},
-				},
-			},
-		},
+	expectedSentence := &dbmodels.Sentence{
+		TranslationID: 2,
+		Sentence:      "I have never read a book",
 	}
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
-	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(1).(*dbmodels.Word)
-		*(wordArg) = *(dbWord)
+	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(3).(*dbmodels.Translation)
+		*(wordArg) = *(dbTranslation)
 	})
 
 	mockRepo.On("AddSentence", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
-			wordArg := args.Get(1).(*dbmodels.Word)
-			assert.Equal(t, expectedWord.Polish, wordArg.Polish)
-			assert.ElementsMatch(t, expectedWord.Translations, wordArg.Translations)
+			wordArg := args.Get(3).(*dbmodels.Sentence)
+			assert.Equal(t, expectedSentence, wordArg)
 		})
 
 	success, err := dbService.CreateSentence(context.Background(), polish, English, sentence)
@@ -293,7 +270,7 @@ func TestUpdateWord_Success(t *testing.T) {
 		*(wordArg) = *(dbWord)
 	})
 
-	mockRepo.On("Update", mock.Anything, mock.Anything, mock.Anything, Word).Return(nil)
+	mockRepo.On("Update", mock.Anything, mock.Anything, mock.Anything, WORD_UPDATE).Return(nil)
 
 	success, err := dbService.UpdateWord(context.Background(), polish, newPolish)
 
@@ -324,7 +301,7 @@ func TestUpdateSentence_Success(t *testing.T) {
 		*(wordArg) = *(dbSentence)
 	})
 
-	mockRepo.On("Update", mock.Anything, mock.Anything, mock.Anything, Sentence).Return(nil)
+	mockRepo.On("Update", mock.Anything, mock.Anything, mock.Anything, SENTENCE_UPDATE).Return(nil)
 
 	success, err := dbService.UpdateSentence(context.Background(), polish, English, sentence, newSentence)
 
@@ -359,7 +336,7 @@ func TestUpdateTranslation_Success(t *testing.T) {
 		*(wordArg) = *(dbTranslation)
 	})
 
-	mockRepo.On("Update", mock.Anything, mock.Anything, mock.Anything, Translation).Return(nil)
+	mockRepo.On("Update", mock.Anything, mock.Anything, mock.Anything, TRANSLATION_UPDATE).Return(nil)
 
 	success, err := dbService.UpdateTranslation(context.Background(), polish, English, newEnglish)
 

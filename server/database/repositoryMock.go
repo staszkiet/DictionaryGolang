@@ -20,13 +20,13 @@ func (m *MockRepository) GetWord(tx *gorm.DB, polish string, word *dbmodels.Word
 	return args.Error(0)
 }
 
-func (m *MockRepository) AddSentence(tx *gorm.DB, word *dbmodels.Word, translation string, sentence string) error {
-	args := m.Called(tx, word, translation, sentence)
+func (m *MockRepository) AddSentence(tx *gorm.DB, polish string, translation string, sentence *dbmodels.Sentence) error {
+	args := m.Called(tx, polish, translation, sentence)
 	return args.Error(0)
 }
 
-func (m *MockRepository) AddTranslation(tx *gorm.DB, word *dbmodels.Word, translation string) error {
-	args := m.Called(tx, word, translation)
+func (m *MockRepository) AddTranslation(tx *gorm.DB, polish string, translation *dbmodels.Translation) error {
+	args := m.Called(tx, polish, translation)
 	return args.Error(0)
 }
 

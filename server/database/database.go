@@ -74,21 +74,17 @@ func (r *DatabaseService) CreateWord(ctx context.Context, polish string, transla
 }
 
 func (r *DatabaseService) CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
-	var word dbmodels.Word
+	var translation dbmodels.Translation
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
-		err := r.repository.GetWord(tx, polish, &word)
+		err := r.repository.GetTranslation(tx, polish, english, &translation)
 		if err != nil {
 			return err
 		}
 
-		for i, t := range word.Translations {
-			if t.English == english {
-				word.Translations[i].Sentences = append(word.Translations[i].Sentences, dbmodels.Sentence{Sentence: sentence})
-			}
-		}
+		newSentence := &dbmodels.Sentence{TranslationID: translation.ID, Sentence: sentence}
 
-		if err := r.repository.AddSentence(tx, &word, english, sentence); err != nil {
+		if err := r.repository.AddSentence(tx, polish, english, newSentence); err != nil {
 			return err
 		}
 		return nil
@@ -110,12 +106,13 @@ func (r *DatabaseService) CreateTranslation(ctx context.Context, polish string, 
 			return err
 		}
 
-		word.Translations = append(word.Translations, dbmodels.Translation{
+		newTranslation := &dbmodels.Translation{
+			WordID:    word.ID,
 			English:   translation.English,
 			Sentences: sentences,
-		})
+		}
 
-		if err = r.repository.AddTranslation(tx, &word, translation.English); err != nil {
+		if err = r.repository.AddTranslation(tx, polish, newTranslation); err != nil {
 			return err
 		}
 		return nil
@@ -176,7 +173,7 @@ func (r *DatabaseService) UpdateWord(ctx context.Context, polish string, newPoli
 			return err
 		}
 
-		if err := r.repository.Update(tx, &word, newPolish, Word); err != nil {
+		if err := r.repository.Update(tx, &word, newPolish, WORD_UPDATE); err != nil {
 			return err
 		}
 		return nil
@@ -195,7 +192,7 @@ func (r *DatabaseService) UpdateTranslation(ctx context.Context, polish string, 
 			return err
 		}
 
-		err = r.repository.Update(tx, &translation, newEnglish, Translation)
+		err = r.repository.Update(tx, &translation, newEnglish, TRANSLATION_UPDATE)
 		if err != nil {
 			return err
 		}
@@ -215,7 +212,7 @@ func (r *DatabaseService) UpdateSentence(ctx context.Context, polish string, eng
 			return err
 		}
 
-		err = r.repository.Update(tx, &s, newSentence, Sentence)
+		err = r.repository.Update(tx, &s, newSentence, SENTENCE_UPDATE)
 		if err != nil {
 			return err
 		}
@@ -226,12 +223,19 @@ func (r *DatabaseService) UpdateSentence(ctx context.Context, polish string, eng
 
 func (r *DatabaseService) SelectWord(ctx context.Context, polish string) (*model.Word, error) {
 	var word dbmodels.Word
+	var err error
 
 	r.repository.WithTransaction(func(tx *gorm.DB) error {
-		if err := r.repository.GetWord(tx, polish, &word); err != nil {
+		if err = r.repository.GetWord(tx, polish, &word); err != nil {
 			return err
 		}
 		return nil
 	})
-	return dbmodels.DBWordToGQLWord(&word), nil
+	return dbmodels.DBWordToGQLWord(&word), err
 }
+
+const (
+	WORD_UPDATE        = "polish"
+	TRANSLATION_UPDATE = "english"
+	SENTENCE_UPDATE    = "sentence"
+)
