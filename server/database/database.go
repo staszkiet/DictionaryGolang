@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -24,7 +25,14 @@ func NewDatabaseService() *DatabaseService {
 		log.Fatal("Error loading .env file")
 	}
 
-	dsn := os.Getenv("DATABASE_URL")
+	host := os.Getenv("POSTGRES_HOST")
+	user := os.Getenv("POSTGRES_USER")
+	password := os.Getenv("POSTGRES_PASSWORD")
+	dbname := os.Getenv("POSTGRES_DBNAME")
+	sslmode := os.Getenv("POSTGRES_SSLMODE")
+
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5432 sslmode=%s",
+		host, user, password, dbname, sslmode)
 
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

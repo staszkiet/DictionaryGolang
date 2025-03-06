@@ -4,29 +4,31 @@ version: '3.9'
 services:
 
   postgres:
+
     image: postgres
     restart: always
-
     shm_size: 128mb
 
     environment:
-      POSTGRES_PASSWORD: example
-      POSTGRES_DB: dictionarygolang
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DBNAME}
+      
     ports:
-      - 5430:5432
+      - "${POSTGRES_PORT}:5432"
 
 
 
-  # server:
-  #   build:
-  #     context: .
-  #     dockerfile: server/Dockerfile
-  #   container_name: dictionary_server
-  #   depends_on:
-  #     - postgres
-  #   ports:
-  #     - "8080:8080"
-  #   working_dir: /app
-  #   command: ["go", "run", "server/server.go"]
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: dictionary_server
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    working_dir: /app
+    command: ["go", "run", "server/server.go"]
 
 
