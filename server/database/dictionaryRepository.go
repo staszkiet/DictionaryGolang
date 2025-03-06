@@ -156,9 +156,9 @@ func (d *dictionaryRepository) DeleteWord(tx *gorm.DB, polish string) error {
 	return nil
 }
 
-func (d *dictionaryRepository) Update(tx *gorm.DB, sentence interface{}, newSentence string, updateType string) error {
+func (d *dictionaryRepository) Update(tx *gorm.DB, entity interface{}, newEntity string, updateType string) error {
 
-	err := tx.Model(sentence).Update(updateType, newSentence).Error
+	err := tx.Model(entity).Update(updateType, newEntity).Error
 	if err != nil {
 		tx.Rollback()
 		return err
