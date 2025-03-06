@@ -4,6 +4,10 @@ import (
 	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 )
 
+type Entity interface {
+	Word | Translation | Sentence
+}
+
 type Word struct {
 	ID           uint          `gorm:"primarykey"`
 	Polish       string        `json:"polish" gorm:"index;unique"`
