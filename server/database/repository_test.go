@@ -159,7 +159,7 @@ func TestCreateTranslation_TranslationExists(t *testing.T) {
 		},
 	}
 
-	expectedError := customerrors.TranslationExistsError{Word: polish, Translation: translation.English}
+	expectedError := customerrors.TranslationExistsError{Translation: translation.English}
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
 	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
@@ -238,7 +238,7 @@ func TestCreateSentence_SentenceExists(t *testing.T) {
 		},
 	}
 
-	expectedError := customerrors.SentenceExistsError{Word: polish, Translation: English, Sentence: sentence}
+	expectedError := customerrors.SentenceExistsError{Sentence: sentence}
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
 	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {

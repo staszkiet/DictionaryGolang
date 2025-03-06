@@ -16,15 +16,15 @@ type Word struct {
 
 type Translation struct {
 	ID        uint       `gorm:"primarykey"`
-	WordID    uint       `json:"wordId" gorm:"index:,uniqueIndex:translation"`
-	English   string     `json:"english" gorm:"index;uniqueIndex:translation"`
+	WordID    uint       `json:"wordId" gorm:"uniqueIndex:translation"`
+	English   string     `json:"english" gorm:"uniqueIndex:translation"`
 	Sentences []Sentence `gorm:"foreignKey:TranslationID;constraint:OnDelete:CASCADE"`
 }
 
 type Sentence struct {
 	ID            uint   `gorm:"primarykey"`
 	TranslationID uint   `json:"translationId" gorm:"uniqueIndex:sentence"`
-	Sentence      string `json:"sentence" gorm:"index;uniqueIndex:sentence"`
+	Sentence      string `json:"sentence" gorm:"uniqueIndex:sentence"`
 }
 
 func DBSentenceToGQLSentence(s *Sentence) *model.Sentence {
