@@ -220,13 +220,17 @@ func (r *DatabaseService) SelectWord(ctx context.Context, polish string) (*model
 	var word dbmodels.Word
 	var err error
 
-	r.repository.WithTransaction(func(tx *gorm.DB) error {
+	_, retErr := r.repository.WithTransaction(func(tx *gorm.DB) error {
 		if err = r.repository.GetWord(tx, polish, &word); err != nil {
 			return err
 		}
 		return nil
 	})
-	return dbmodels.DBWordToGQLWord(&word), err
+	if retErr == nil {
+		return dbmodels.DBWordToGQLWord(&word), nil
+	} else {
+		return nil, retErr
+	}
 }
 
 const (

@@ -273,10 +273,7 @@ func (a AddTranslationCommand) Execute(input []string) error {
 	polish := input[0]
 	graphqlClient := GetClientInstance()
 
-	fmt.Println("translation:")
-
 	translation := input[1]
-	fmt.Println("example sentences:")
 	for i := 2; i < len(input); i++ {
 		sentences = append(sentences, input[i])
 	}

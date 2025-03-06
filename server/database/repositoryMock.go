@@ -58,7 +58,7 @@ func (m *MockRepository) Update(tx *gorm.DB, sentence interface{}, newSentence s
 func (m *MockRepository) WithTransaction(fn func(tx *gorm.DB) error) (bool, error) {
 
 	args := m.Called(fn)
-	err := args.Error(1)
+	var err error
 
 	mockTx := &gorm.DB{}
 	if fn != nil {

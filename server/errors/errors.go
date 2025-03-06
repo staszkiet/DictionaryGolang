@@ -21,7 +21,7 @@ type SentenceExistsError struct {
 }
 
 func (e SentenceExistsError) Error() string {
-	return fmt.Sprintf("zdanie %s już jest dodane do tłumaczenia danego tłumaczenia", e.Sentence)
+	return fmt.Sprintf("zdanie %s już jest dodane do tłumaczenia danego słowa", e.Sentence)
 }
 
 type TranslationExistsError struct {
@@ -45,6 +45,28 @@ func GetEntityExistsError(entity interface{}) error {
 	case *dbmodels.Sentence:
 		{
 			return SentenceExistsError{Sentence: entity.Sentence}
+		}
+	default:
+		{
+			break
+		}
+	}
+	return fmt.Errorf("zły argument funkcji")
+}
+
+func GetUpdatedEntityExistsError(entity interface{}, newEntity string) error {
+	switch entity.(type) {
+	case *dbmodels.Word:
+		{
+			return WordExistsError{Word: newEntity}
+		}
+	case *dbmodels.Translation:
+		{
+			return TranslationExistsError{Translation: newEntity}
+		}
+	case *dbmodels.Sentence:
+		{
+			return SentenceExistsError{Sentence: newEntity}
 		}
 	default:
 		{
@@ -83,7 +105,8 @@ func (e TranslationNotExistsError) Error() string {
 	return fmt.Sprintf("tłumaczenie %s słowa %s nie istnieje w słowniku", e.Translation, e.Word)
 }
 
-//errors for deleting values form DB
+//errors for deleting values form DB. They are not tested because they in every function are preceded by a get function which should call
+//an error when something doesnt exist, but for correctedness' sake I attached them to my project
 
 type CantDeleteWordError struct {
 	Word string

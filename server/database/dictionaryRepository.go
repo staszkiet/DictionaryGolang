@@ -136,7 +136,7 @@ func (d *dictionaryRepository) DeleteWord(tx *gorm.DB, polish string) error {
 
 func (d *dictionaryRepository) Update(tx *gorm.DB, entity interface{}, newEntity string, updateType string) error {
 
-	existsErr := customerrors.GetEntityExistsError(entity)
+	existsErr := customerrors.GetUpdatedEntityExistsError(entity, newEntity)
 
 	err := tx.Model(entity).Update(updateType, newEntity).Error
 	if err != nil {
