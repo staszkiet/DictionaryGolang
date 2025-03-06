@@ -10,23 +10,13 @@ type MockRepository struct {
 	mock.Mock
 }
 
-func (m *MockRepository) CreateWord(tx *gorm.DB, word *dbmodels.Word) error {
-	args := m.Called(tx, word)
+func (m *MockRepository) Add(tx *gorm.DB, entity interface{}) error {
+	args := m.Called(tx, entity)
 	return args.Error(0)
 }
 
 func (m *MockRepository) GetWord(tx *gorm.DB, polish string, word *dbmodels.Word) error {
 	args := m.Called(tx, word)
-	return args.Error(0)
-}
-
-func (m *MockRepository) AddSentence(tx *gorm.DB, polish string, translation string, sentence *dbmodels.Sentence) error {
-	args := m.Called(tx, polish, translation, sentence)
-	return args.Error(0)
-}
-
-func (m *MockRepository) AddTranslation(tx *gorm.DB, polish string, translation *dbmodels.Translation) error {
-	args := m.Called(tx, polish, translation)
 	return args.Error(0)
 }
 

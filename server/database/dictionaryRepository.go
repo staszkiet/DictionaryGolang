@@ -11,33 +11,19 @@ import (
 )
 
 type IRepository interface {
-	CreateWord(tx *gorm.DB, word *dbmodels.Word) error
+	Add(tx *gorm.DB, entity interface{}) error
 	GetWord(tx *gorm.DB, polish string, word *dbmodels.Word) error
-	AddSentence(tx *gorm.DB, polish string, translation string, sentence *dbmodels.Sentence) error
-	AddTranslation(tx *gorm.DB, polish string, translation *dbmodels.Translation) error
 	GetSentence(tx *gorm.DB, polish string, english string, sentence string, s *dbmodels.Sentence) error
 	DeleteSentence(tx *gorm.DB, s dbmodels.Sentence) error
 	GetTranslation(tx *gorm.DB, polish string, english string, translation *dbmodels.Translation) error
 	DeleteTranslation(tx *gorm.DB, translation *dbmodels.Translation) error
 	DeleteWord(tx *gorm.DB, polish string) error
-	Update(tx *gorm.DB, sentence interface{}, newSentence string, updateType string) error
+	Update(tx *gorm.DB, entity interface{}, newEntityString string, updateType string) error
 	WithTransaction(fn func(tx *gorm.DB) error) (bool, error)
 }
 
 type dictionaryRepository struct {
 	db *gorm.DB
-}
-
-func (d *dictionaryRepository) CreateWord(tx *gorm.DB, word *dbmodels.Word) error {
-	if err := tx.Create(word).Error; err != nil {
-		tx.Rollback()
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return customerrors.WordExistsError{Word: word.Polish}
-		}
-		return err
-	}
-	return nil
 }
 
 func (d *dictionaryRepository) GetWord(tx *gorm.DB, polish string, word *dbmodels.Word) error {
@@ -52,28 +38,20 @@ func (d *dictionaryRepository) GetWord(tx *gorm.DB, polish string, word *dbmodel
 	return nil
 }
 
-func (d *dictionaryRepository) AddSentence(tx *gorm.DB, polish string, translation string, sentence *dbmodels.Sentence) error {
-	if err := tx.Create(sentence).Error; err != nil {
-		tx.Rollback()
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return customerrors.SentenceExistsError{Word: polish, Translation: translation, Sentence: sentence.Sentence}
-		}
-		return err
-	}
-	return nil
-}
+func (d *dictionaryRepository) Add(tx *gorm.DB, entity interface{}) error {
 
-func (d *dictionaryRepository) AddTranslation(tx *gorm.DB, polish string, translation *dbmodels.Translation) error {
-	if err := tx.Create(translation).Error; err != nil {
+	existsErr := customerrors.GetEntityExistsError(entity)
+
+	if err := tx.Create(entity).Error; err != nil {
 		tx.Rollback()
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return customerrors.TranslationExistsError{Word: polish, Translation: translation.English}
+			return existsErr
 		}
 		return err
 	}
 	return nil
+
 }
 
 func (d *dictionaryRepository) GetSentence(tx *gorm.DB, polish string, english string, sentence string, s *dbmodels.Sentence) error {
@@ -158,9 +136,15 @@ func (d *dictionaryRepository) DeleteWord(tx *gorm.DB, polish string) error {
 
 func (d *dictionaryRepository) Update(tx *gorm.DB, entity interface{}, newEntity string, updateType string) error {
 
+	existsErr := customerrors.GetEntityExistsError(entity)
+
 	err := tx.Model(entity).Update(updateType, newEntity).Error
 	if err != nil {
 		tx.Rollback()
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return existsErr
+		}
 		return err
 	}
 	return nil

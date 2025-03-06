@@ -1,6 +1,10 @@
 package customerrors
 
-import "fmt"
+import (
+	"fmt"
+
+	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
+)
 
 //errors for adding values to DB
 
@@ -13,22 +17,41 @@ func (e WordExistsError) Error() string {
 }
 
 type SentenceExistsError struct {
-	Word        string
-	Translation string
-	Sentence    string
+	Sentence string
 }
 
 func (e SentenceExistsError) Error() string {
-	return fmt.Sprintf("zdanie %s już jest dodane do tłumaczenia %s słowa %s", e.Sentence, e.Translation, e.Word)
+	return fmt.Sprintf("zdanie %s już jest dodane do tłumaczenia danego tłumaczenia", e.Sentence)
 }
 
 type TranslationExistsError struct {
-	Word        string
 	Translation string
 }
 
 func (e TranslationExistsError) Error() string {
-	return fmt.Sprintf("tłumaczenie %s już jest dodane do słowa %s", e.Translation, e.Word)
+	return fmt.Sprintf("tłumaczenie %s już jest dodane do danego słowa", e.Translation)
+}
+
+func GetEntityExistsError(entity interface{}) error {
+	switch entity := entity.(type) {
+	case *dbmodels.Word:
+		{
+			return WordExistsError{Word: entity.Polish}
+		}
+	case *dbmodels.Translation:
+		{
+			return TranslationExistsError{Translation: entity.English}
+		}
+	case *dbmodels.Sentence:
+		{
+			return SentenceExistsError{Sentence: entity.Sentence}
+		}
+	default:
+		{
+			break
+		}
+	}
+	return fmt.Errorf("zły argument funkcji")
 }
 
 //errors for retrieving value from DB

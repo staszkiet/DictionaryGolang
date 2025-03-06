@@ -40,11 +40,6 @@ func NewDatabaseService() *DatabaseService {
 
 }
 
-func NewMockedDatabaseService() *DatabaseService {
-
-	return &DatabaseService{repository: &MockRepository{}}
-}
-
 func (r *DatabaseService) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
@@ -66,7 +61,7 @@ func (r *DatabaseService) CreateWord(ctx context.Context, polish string, transla
 			Translations: convertedTranslations,
 		}
 
-		if err := r.repository.CreateWord(tx, word); err != nil {
+		if err := r.repository.Add(tx, word); err != nil {
 			return err
 		}
 		return nil
@@ -84,7 +79,7 @@ func (r *DatabaseService) CreateSentence(ctx context.Context, polish string, eng
 
 		newSentence := &dbmodels.Sentence{TranslationID: translation.ID, Sentence: sentence}
 
-		if err := r.repository.AddSentence(tx, polish, english, newSentence); err != nil {
+		if err := r.repository.Add(tx, newSentence); err != nil {
 			return err
 		}
 		return nil
@@ -112,7 +107,7 @@ func (r *DatabaseService) CreateTranslation(ctx context.Context, polish string, 
 			Sentences: sentences,
 		}
 
-		if err = r.repository.AddTranslation(tx, polish, newTranslation); err != nil {
+		if err = r.repository.Add(tx, newTranslation); err != nil {
 			return err
 		}
 		return nil
