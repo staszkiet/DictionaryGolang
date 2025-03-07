@@ -14,7 +14,7 @@ import (
 func TestCreateWord_Success(t *testing.T) {
 
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "dom"
 	translation := model.NewTranslation{
@@ -58,7 +58,7 @@ func TestCreateWord_Success(t *testing.T) {
 func TestCreateWord_WordAlreadyExists(t *testing.T) {
 
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 	polish := "dom"
 	translation := model.NewTranslation{
 		English:   "house",
@@ -81,7 +81,7 @@ func TestCreateWord_WordAlreadyExists(t *testing.T) {
 
 func TestCreateTranslation_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "pisać"
 	translation := model.NewTranslation{
@@ -135,7 +135,7 @@ func TestCreateTranslation_Success(t *testing.T) {
 
 func TestCreateTranslation_TranslationAlreadyExists(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "pisać"
 	translation := model.NewTranslation{
@@ -178,7 +178,7 @@ func TestCreateTranslation_TranslationAlreadyExists(t *testing.T) {
 
 func TestCreateSentence_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 	English := "book"
@@ -220,7 +220,7 @@ func TestCreateSentence_Success(t *testing.T) {
 
 func TestCreateSentence_SentenceAlreadyExists(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 	English := "book"
@@ -255,7 +255,7 @@ func TestCreateSentence_SentenceAlreadyExists(t *testing.T) {
 
 func TestDeleteSentence_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 	English := "book"
@@ -286,7 +286,7 @@ func TestDeleteSentence_Success(t *testing.T) {
 
 func TestDeleteSentence_SentenceDoesntExist(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 	English := "book"
@@ -307,7 +307,7 @@ func TestDeleteSentence_SentenceDoesntExist(t *testing.T) {
 }
 func TestDeleteTranslation_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 	English := "book"
@@ -345,7 +345,7 @@ func TestDeleteTranslation_Success(t *testing.T) {
 
 func TestDeleteTranslation_TranslationOrWordDoesntExist(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 	English := "book"
@@ -367,7 +367,7 @@ func TestDeleteTranslation_TranslationOrWordDoesntExist(t *testing.T) {
 func TestDeleteWord_Success(t *testing.T) {
 
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 
@@ -386,7 +386,7 @@ func TestDeleteWord_Success(t *testing.T) {
 func TestDeleteWord_WordDoesntExist(t *testing.T) {
 
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 
@@ -407,7 +407,7 @@ func TestDeleteWord_WordDoesntExist(t *testing.T) {
 
 func TestUpdateWord_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "dm"
 	newPolish := "dom"
@@ -444,7 +444,7 @@ func TestUpdateWord_Success(t *testing.T) {
 
 func TestUpdateWord_WordToUpdateDoesntExist(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "dm"
 	newPolish := "dom"
@@ -465,7 +465,7 @@ func TestUpdateWord_WordToUpdateDoesntExist(t *testing.T) {
 
 func TestUpdateWord_UpdatedWordExists(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "dm"
 	newPolish := "dom"
@@ -504,7 +504,7 @@ func TestUpdateWord_UpdatedWordExists(t *testing.T) {
 }
 func TestUpdateSentence_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 	English := "bok"
@@ -534,7 +534,7 @@ func TestUpdateSentence_Success(t *testing.T) {
 
 func TestUpdateSentence_SentenceToUpdateDoesntExist(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 	English := "bok"
@@ -557,7 +557,7 @@ func TestUpdateSentence_SentenceToUpdateDoesntExist(t *testing.T) {
 
 func TestUpdateSentence_UpdatedSentenceExists(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 	English := "bok"
@@ -590,7 +590,7 @@ func TestUpdateSentence_UpdatedSentenceExists(t *testing.T) {
 
 func TestUpdateTranslation_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 	English := "bok"
@@ -624,7 +624,7 @@ func TestUpdateTranslation_Success(t *testing.T) {
 
 func TestUpdateTranslation_TranslationToUpdateDoesntExist(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 	English := "bok"
@@ -647,7 +647,7 @@ func TestUpdateTranslation_TranslationToUpdateDoesntExist(t *testing.T) {
 
 func TestUpdateTranslation_UpdatedTranslationExists(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 	English := "bok"
@@ -684,7 +684,7 @@ func TestUpdateTranslation_UpdatedTranslationExists(t *testing.T) {
 
 func TestSelectWord_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "dom"
 
@@ -731,7 +731,7 @@ func TestSelectWord_Success(t *testing.T) {
 
 func TestSelectWord_WordDoesntExist(t *testing.T) {
 	mockRepo := new(MockRepository)
-	dbService := &DatabaseService{repository: mockRepo}
+	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "dom"
 
