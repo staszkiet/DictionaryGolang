@@ -72,10 +72,7 @@ func (d *dictionaryRepository) GetSentence(tx *gorm.DB, polish string, english s
 
 func (d *dictionaryRepository) DeleteSentence(tx *gorm.DB, s dbmodels.Sentence) error {
 	if err := tx.Delete(s).Error; err != nil {
-		tx.Rollback()
 		return err
-	} else if tx.RowsAffected < 1 {
-		return customerrors.CantDeleteSentenceError{Sentence: s.Sentence}
 	}
 	return nil
 }
@@ -100,10 +97,7 @@ func (d *dictionaryRepository) DeleteTranslation(tx *gorm.DB, translation *dbmod
 	var count int64
 
 	if err := tx.Model(translation).Delete(&translation).Error; err != nil {
-		tx.Rollback()
 		return err
-	} else if tx.RowsAffected < 1 {
-		return customerrors.CantDeleteTranslationError{Translation: translation.English}
 	}
 
 	if err := tx.Model(&dbmodels.Translation{}).Where("word_id = ?", translation.WordID).Count(&count).Error; err != nil {
@@ -123,13 +117,7 @@ func (d *dictionaryRepository) DeleteTranslation(tx *gorm.DB, translation *dbmod
 func (d *dictionaryRepository) DeleteWord(tx *gorm.DB, polish string) error {
 
 	if err := tx.Where("polish = ?", polish).Delete(&dbmodels.Word{}).Error; err != nil {
-		tx.Rollback()
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return customerrors.WordNotExistsError{Word: polish}
-		}
 		return err
-	} else if tx.RowsAffected < 1 {
-		return customerrors.CantDeleteWordError{Word: polish}
 	}
 	return nil
 }
