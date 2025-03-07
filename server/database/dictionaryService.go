@@ -13,11 +13,12 @@ import (
 	"gorm.io/gorm"
 )
 
-type DatabaseService struct {
+type DictionaryService struct {
 	repository IRepository
 }
 
-func NewDatabaseService() *DatabaseService {
+// Creates new database service to handle operations on repository
+func NewDatabaseService() *DictionaryService {
 
 	var db *gorm.DB
 	err := godotenv.Load()
@@ -44,11 +45,12 @@ func NewDatabaseService() *DatabaseService {
 		log.Fatal("Failed to migrate")
 	}
 	repo := &dictionaryRepository{db: db}
-	return &DatabaseService{repository: repo}
+	return &DictionaryService{repository: repo}
 
 }
 
-func (r *DatabaseService) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
+// Adds a translation to the dictionary (assumes that polish part wasn't in the dictionary at the time of calling)
+func (r *DictionaryService) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		sentences := make([]dbmodels.Sentence, 0)
@@ -76,7 +78,8 @@ func (r *DatabaseService) CreateWord(ctx context.Context, polish string, transla
 	})
 }
 
-func (r *DatabaseService) CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
+// Adds and examplse sentence to the existing translation
+func (r *DictionaryService) CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
 	var translation dbmodels.Translation
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
@@ -95,7 +98,8 @@ func (r *DatabaseService) CreateSentence(ctx context.Context, polish string, eng
 
 }
 
-func (r *DatabaseService) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
+// Adds a translation to the dictionary (assumes that the polish part already exists in the dictionary with another translation of it)
+func (r *DictionaryService) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		var word dbmodels.Word
@@ -123,7 +127,8 @@ func (r *DatabaseService) CreateTranslation(ctx context.Context, polish string, 
 
 }
 
-func (r *DatabaseService) DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
+// Deletes an example sentence from given translation
+func (r *DictionaryService) DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		var s dbmodels.Sentence
@@ -140,7 +145,9 @@ func (r *DatabaseService) DeleteSentence(ctx context.Context, polish string, eng
 
 }
 
-func (r *DatabaseService) DeleteTranslation(ctx context.Context, polish string, english string) (bool, error) {
+// Deletes an english part of translation
+// (If it was the last translation attached to the polish part, the polish part also gets deleted)
+func (r *DictionaryService) DeleteTranslation(ctx context.Context, polish string, english string) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		var translation dbmodels.Translation
@@ -157,7 +164,8 @@ func (r *DatabaseService) DeleteTranslation(ctx context.Context, polish string, 
 
 }
 
-func (r *DatabaseService) DeleteWord(ctx context.Context, polish string) (bool, error) {
+// Deletes whole translation (polish part, english counterparts and its sentences)
+func (r *DictionaryService) DeleteWord(ctx context.Context, polish string) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		if err := r.repository.DeleteWord(tx, polish); err != nil {
@@ -167,7 +175,8 @@ func (r *DatabaseService) DeleteWord(ctx context.Context, polish string) (bool, 
 	})
 }
 
-func (r *DatabaseService) UpdateWord(ctx context.Context, polish string, newPolish string) (bool, error) {
+// Updates polish part of the translation
+func (r *DictionaryService) UpdateWord(ctx context.Context, polish string, newPolish string) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		var word dbmodels.Word
@@ -184,7 +193,8 @@ func (r *DatabaseService) UpdateWord(ctx context.Context, polish string, newPoli
 
 }
 
-func (r *DatabaseService) UpdateTranslation(ctx context.Context, polish string, english string, newEnglish string) (bool, error) {
+// Updates english part of the translation
+func (r *DictionaryService) UpdateTranslation(ctx context.Context, polish string, english string, newEnglish string) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		var translation dbmodels.Translation
@@ -204,7 +214,8 @@ func (r *DatabaseService) UpdateTranslation(ctx context.Context, polish string, 
 
 }
 
-func (r *DatabaseService) UpdateSentence(ctx context.Context, polish string, english string, sentence string, newSentence string) (bool, error) {
+// Updates an example sentence of given translation
+func (r *DictionaryService) UpdateSentence(ctx context.Context, polish string, english string, sentence string, newSentence string) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 
@@ -224,7 +235,8 @@ func (r *DatabaseService) UpdateSentence(ctx context.Context, polish string, eng
 
 }
 
-func (r *DatabaseService) SelectWord(ctx context.Context, polish string) (*model.Word, error) {
+// Fetches data regarding given polish word
+func (r *DictionaryService) SelectWord(ctx context.Context, polish string) (*model.Word, error) {
 	var word dbmodels.Word
 	var err error
 

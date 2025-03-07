@@ -1,5 +1,8 @@
 # Dictionary App
 
+## Notes
+- Some non-internal error messages are in polish because they com up in client's terminal and I assume that he should get those in their native language
+
 ## Requirements
 - Docker with docker-compose
 - Go language (if you want to use the client app)
