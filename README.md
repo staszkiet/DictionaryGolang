@@ -1,24 +1,29 @@
-What do you need to run the app?
+# Dictionary App
 
-Docker with docker-compose
+## Requirements
+- Docker with docker-compose
+- Go language (if you want to use the client app)
 
-go language (if you want to use the client app)
+## Start the server and DB
 
+1. Clone the repository
+2. Go into the server folder
+3. Run `docker-compose build`
+4. Run `docker-compose up -d`
 
-Application startup:
+## Start the client (optional)
 
-clone the repository
+1. Go into the app folder
+2. Run `go mod tidy`
+3. Run `go run .`
 
-go into server folder
+## Queries and mutations examples
 
-run docker-compose build
-run docker-compose up -d
+### Create polish-english translation
 
-Queries and mutations examples:
-
-Create polish-english translation:
-
-mutation createWOrd{
+**GraphQL:**
+```graphql
+mutation createWord {
   createWord(
     polish: "rower"
     translation: {
@@ -30,13 +35,17 @@ mutation createWOrd{
     }
   )
 }
+```
 
-in client app:
-
+**Client:**
+```
 ADD rower bike (My bike is green.) (I like my bike.)
+```
 
-Add a translation to a polish word existing in a dictionary:
+### Add a translation to an existing polish word
 
+**GraphQL:**
+```graphql
 mutation {
   createTranslation(
     polish: "rower"
@@ -49,118 +58,156 @@ mutation {
     }
   )
 }
+```
 
-in client app:
-
+**Client:**
+```
 ADD_TRANSLATION rower bicycle (I like my bicycle) (The bicycle is under repair)
+```
 
-Add example sentence to existing translation:
+### Add example sentence to an existing translation
 
+**GraphQL:**
+```graphql
 mutation {
   createSentence(
-    	polish: "rower"
-      english: "bicycle"
-      sentence: "I dont like my bicycle."
+    polish: "rower"
+    english: "bicycle"
+    sentence: "I dont like my bicycle."
   )
 }
+```
 
-in clinet app:
-
+**Client:**
+```
 ADD_SENTENCE rower bicycle (I dont like my bicycle)
+```
 
-Delete an example sentence:
+### delete an example sentence
 
-mutation deleteSentence{
+**GraphQL:**
+```graphql
+mutation deleteSentence {
   deleteSentence(
-    	polish: "rower"
-      english: "bicycle"
-      sentence: "I dont like my bicycle."
+    polish: "rower"
+    english: "bicycle"
+    sentence: "I dont like my bicycle."
   )
 }
+```
 
-in client app:
-
+**Client:**
+```
 DELETE_SENTENCE rower bicycle (I dont like my bicycle)
+```
 
-Delete english part of tranlation (NOTE: if the translation the user deletes is the last one attached to given polish word, the polish word gets also deleted)
+### Delete english translation
 
-mutation deleteTranslation{
+**Note:** If this is the last translation for a Polish word, the Polish word will also be deleted.
+
+**GraphQL:**
+```graphql
+mutation deleteTranslation {
   deleteTranslation(
-    	polish: "rower"
-      english: "bicycle"
+    polish: "rower"
+    english: "bicycle"
   )
 }
+```
 
-in client app:
-
+**Client:**
+```
 DELETE_TRANSLATION rower bicycle
+```
 
-Delete polish word with all its translations:
+### Delete polish word with it's translations and example sentences
 
-mutation deleteWord{
+**GraphQL:**
+```graphql
+mutation deleteWord {
   deleteWord(
-    	polish: "rower"
+    polish: "rower"
   )
 }
+```
 
+**Client:**
+```
 DELETE rower
+```
 
-Update example sentence:
+### Update example sentence
 
-mutation updateSentence{
+**GraphQL:**
+```graphql
+mutation updateSentence {
   updateSentence(
-    	polish: "rower"
-      english: "bicycle"
-      sentence: "I dont like my bicycle."
+    polish: "rower"
+    english: "bicycle"
+    sentence: "I dont like my bicycle."
     newSentence: "I love my bicycle"
   )
 }
+```
 
-in client app:
-
+**Client:**
+```
 UPDATE_SENTENCE rower bicycle (I dont like my bicycle) (I love my bicycle)
+```
 
-Update english part of a translation:
+### Update english translation
 
-mutation updateTranslation{
+**GraphQL:**
+```graphql
+mutation updateTranslation {
   updateTranslation(
-    	polish: "rower"
-      english: "biccle"
-	newEnglish: "bicycle"
+    polish: "rower"
+    english: "biccle"
+    newEnglish: "bicycle"
   )
 }
+```
 
-in client app:
-
+**Client:**
+```
 UPDATE_TRANSLATION rower biccle bicycle
+```
 
-Update polish part of the translation
+### Update polish word
 
-mutation updateWord{
+**GraphQL:**
+```graphql
+mutation updateWord {
   updateWord(
-    	polish: "rwer"
-      newPolish: "rower"
+    polish: "rwer"
+    newPolish: "rower"
   )
 }
+```
 
-in client app:
-
+**Client:**
+```
 UPDATE rwer rower
+```
 
-Get a word and it's translation and sentences:
+### Query word with it's translations and rxamples
 
-query select{
-  selectWord(polish: "rower"){
+**GraphQL:**
+```graphql
+query select {
+  selectWord(polish: "rower") {
     polish
-    translations{
+    translations {
       english
-      sentences{
+      sentences {
         sentence
       }
     }
   }
 }
+```
 
-in client app:
-
+**Client:**
+```
 SELECT rower
+```
