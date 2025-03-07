@@ -8,7 +8,7 @@
 
 1. Clone the repository
 2. Go into the server folder
-3. Add .env file according to dchema in .env.examples
+3. Add .env file according to schema in .env.examples
 4. Run `docker-compose build`
 5. Run `docker-compose up -d`
 
