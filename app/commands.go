@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/machinebox/graphql"
-	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 )
 
 type ICommand interface {
@@ -53,6 +52,11 @@ type UpdateSentenceCommand struct {
 
 type CommandFactory struct {
 	commands map[string]ICommand
+}
+
+type NewTranslation struct {
+	English   string   `json:"english"`
+	Sentences []string `json:"sentences"`
 }
 
 func NewCommandFactory() *CommandFactory {
@@ -230,7 +234,7 @@ func (a AddWordCommand) Execute(input []string) error {
 	}
 
 	a.request.Var("polish", polish)
-	newTran := model.NewTranslation{English: translation, Sentences: sentences}
+	newTran := NewTranslation{English: translation, Sentences: sentences}
 	a.request.Var("translation", newTran)
 
 	var graphqlResponse interface{}
@@ -279,7 +283,7 @@ func (a AddTranslationCommand) Execute(input []string) error {
 	}
 
 	a.request.Var("polish", polish)
-	newTran := model.NewTranslation{English: translation, Sentences: sentences}
+	newTran := NewTranslation{English: translation, Sentences: sentences}
 	a.request.Var("translation", newTran)
 
 	var graphqlResponse interface{}
