@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
+
 	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
