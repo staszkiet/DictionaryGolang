@@ -64,18 +64,15 @@ type ComplexityRoot struct {
 	}
 
 	Sentence struct {
-		ID       func(childComplexity int) int
 		Sentence func(childComplexity int) int
 	}
 
 	Translation struct {
 		English   func(childComplexity int) int
-		ID        func(childComplexity int) int
 		Sentences func(childComplexity int) int
 	}
 
 	Word struct {
-		ID           func(childComplexity int) int
 		Polish       func(childComplexity int) int
 		Translations func(childComplexity int) int
 	}
@@ -235,13 +232,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.SelectWord(childComplexity, args["polish"].(string)), true
 
-	case "Sentence.id":
-		if e.complexity.Sentence.ID == nil {
-			break
-		}
-
-		return e.complexity.Sentence.ID(childComplexity), true
-
 	case "Sentence.sentence":
 		if e.complexity.Sentence.Sentence == nil {
 			break
@@ -256,26 +246,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Translation.English(childComplexity), true
 
-	case "Translation.id":
-		if e.complexity.Translation.ID == nil {
-			break
-		}
-
-		return e.complexity.Translation.ID(childComplexity), true
-
 	case "Translation.sentences":
 		if e.complexity.Translation.Sentences == nil {
 			break
 		}
 
 		return e.complexity.Translation.Sentences(childComplexity), true
-
-	case "Word.id":
-		if e.complexity.Word.ID == nil {
-			break
-		}
-
-		return e.complexity.Word.ID(childComplexity), true
 
 	case "Word.polish":
 		if e.complexity.Word.Polish == nil {
@@ -1537,8 +1513,6 @@ func (ec *executionContext) fieldContext_Query_selectWord(ctx context.Context, f
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Word_id(ctx, field)
 			case "polish":
 				return ec.fieldContext_Word_polish(ctx, field)
 			case "translations":
@@ -1692,50 +1666,6 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Sentence_id(ctx context.Context, field graphql.CollectedField, obj *model.Sentence) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Sentence_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Sentence_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Sentence",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Sentence_sentence(ctx context.Context, field graphql.CollectedField, obj *model.Sentence) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Sentence_sentence(ctx, field)
 	if err != nil {
@@ -1775,50 +1705,6 @@ func (ec *executionContext) fieldContext_Sentence_sentence(_ context.Context, fi
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Translation_id(ctx context.Context, field graphql.CollectedField, obj *model.Translation) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Translation_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Translation_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Translation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1907,56 +1793,10 @@ func (ec *executionContext) fieldContext_Translation_sentences(_ context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Sentence_id(ctx, field)
 			case "sentence":
 				return ec.fieldContext_Sentence_sentence(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Sentence", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Word_id(ctx context.Context, field graphql.CollectedField, obj *model.Word) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Word_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Word_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Word",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2045,8 +1885,6 @@ func (ec *executionContext) fieldContext_Word_translations(_ context.Context, fi
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Translation_id(ctx, field)
 			case "english":
 				return ec.fieldContext_Translation_english(ctx, field)
 			case "sentences":
@@ -4239,11 +4077,6 @@ func (ec *executionContext) _Sentence(ctx context.Context, sel ast.SelectionSet,
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Sentence")
-		case "id":
-			out.Values[i] = ec._Sentence_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "sentence":
 			out.Values[i] = ec._Sentence_sentence(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4283,11 +4116,6 @@ func (ec *executionContext) _Translation(ctx context.Context, sel ast.SelectionS
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Translation")
-		case "id":
-			out.Values[i] = ec._Translation_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "english":
 			out.Values[i] = ec._Translation_english(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4332,11 +4160,6 @@ func (ec *executionContext) _Word(ctx context.Context, sel ast.SelectionSet, obj
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Word")
-		case "id":
-			out.Values[i] = ec._Word_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "polish":
 			out.Values[i] = ec._Word_polish(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4712,21 +4535,6 @@ func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (
 
 func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.SelectionSet, v bool) graphql.Marshaler {
 	res := graphql.MarshalBoolean(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
-	res, err := graphql.UnmarshalID(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	res := graphql.MarshalID(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")

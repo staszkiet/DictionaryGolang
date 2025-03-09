@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
+
 	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -32,7 +33,7 @@ func NewDatabaseService() *DictionaryService {
 	dbname := os.Getenv("POSTGRES_DBNAME")
 	sslmode := os.Getenv("POSTGRES_SSLMODE")
 
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5432 sslmode=%s",
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5430 sslmode=%s",
 		host, user, password, dbname, sslmode)
 
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})

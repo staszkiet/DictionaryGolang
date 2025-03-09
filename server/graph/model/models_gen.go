@@ -14,18 +14,15 @@ type Query struct {
 }
 
 type Sentence struct {
-	ID       string `json:"id"`
 	Sentence string `json:"sentence"`
 }
 
 type Translation struct {
-	ID        string      `json:"id"`
 	English   string      `json:"english"`
 	Sentences []*Sentence `json:"sentences"`
 }
 
 type Word struct {
-	ID           string         `json:"id"`
 	Polish       string         `json:"polish"`
 	Translations []*Translation `json:"translations"`
 }

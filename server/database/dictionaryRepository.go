@@ -2,7 +2,6 @@ package database
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
@@ -34,7 +33,6 @@ func (d *dictionaryRepository) GetWord(tx *gorm.DB, polish string, word *dbmodel
 		}
 		return err
 	}
-	fmt.Println(err)
 	return nil
 }
 

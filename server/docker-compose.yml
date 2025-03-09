@@ -13,25 +13,25 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DBNAME}
-    volumes:
-      - pg_data:/var/lib/postgresql/data
+    # volumes:
+    #   - pg_data:/var/lib/postgresql/data
     ports:
       - "${POSTGRES_PORT}:5432"
 
 
 
-  server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: dictionary_server
-    depends_on:
-      - postgres
-    ports:
-      - "8080:8080"
-    working_dir: /app
-    command: ["go", "run", "server.go"]
+  # server:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: dictionary_server
+  #   depends_on:
+  #     - postgres
+  #   ports:
+  #     - "8080:8080"
+  #   working_dir: /app
+  #   command: ["go", "run", "server.go"]
 
-volumes:
-  pg_data:
-    driver: local
+# volumes:
+#   pg_data:
+#     driver: local
