@@ -1,8 +1,6 @@
 package dbmodels
 
-import (
-	"github.com/staszkiet/DictionaryGolang/server/graph/model"
-)
+import "github.com/staszkiet/DictionaryGolang/server/graph/model"
 
 type Word struct {
 	ID           uint          `gorm:"primarykey"`

@@ -6,6 +6,7 @@ import (
 
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
 	customerrors "github.com/staszkiet/DictionaryGolang/server/errors"
+
 	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
