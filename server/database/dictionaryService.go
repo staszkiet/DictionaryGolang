@@ -54,6 +54,7 @@ func NewDatabaseService() *DictionaryService {
 func (r *DictionaryService) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+
 		sentences := make([]dbmodels.Sentence, 0)
 
 		for _, s := range translation.Sentences {
