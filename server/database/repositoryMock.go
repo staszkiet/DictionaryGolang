@@ -1,6 +1,8 @@
 package database
 
 import (
+	"fmt"
+
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
@@ -10,8 +12,19 @@ type MockRepository struct {
 	mock.Mock
 }
 
-func (m *MockRepository) Add(entity interface{}) error {
-	args := m.Called(entity)
+func (m *MockRepository) AddWord(word *dbmodels.Word) error {
+	args := m.Called(word)
+	fmt.Println("called add word")
+	return args.Error(0)
+}
+
+func (m *MockRepository) AddTranslation(translation *dbmodels.Translation) error {
+	args := m.Called(translation)
+	return args.Error(0)
+}
+
+func (m *MockRepository) AddSentence(sentence *dbmodels.Sentence) error {
+	args := m.Called(sentence)
 	return args.Error(0)
 }
 
@@ -49,9 +62,21 @@ func (m *MockRepository) DeleteWord(polish string) error {
 	return args.Error(0)
 }
 
-func (m *MockRepository) Update(sentence interface{}, newSentence string, updateType string) error {
+func (m *MockRepository) UpdateWord(word *dbmodels.Word, newPolish string) error {
 
-	args := m.Called(sentence, newSentence, updateType)
+	args := m.Called(word, newPolish)
+	return args.Error(0)
+}
+
+func (m *MockRepository) UpdateTranslation(translation *dbmodels.Translation, newTranslation string) error {
+
+	args := m.Called(translation, newTranslation)
+	return args.Error(0)
+}
+
+func (m *MockRepository) UpdateSentence(sentence *dbmodels.Sentence, newSentence string) error {
+
+	args := m.Called(sentence, newSentence)
 	return args.Error(0)
 }
 

@@ -55,6 +55,8 @@ func (r *DictionaryService) CreateWord(ctx context.Context, polish string, trans
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 
+		fmt.Println("inside transaction")
+
 		txRepo := dictionaryRepository{tx}
 
 		sentences := make([]dbmodels.Sentence, 0)
@@ -75,9 +77,12 @@ func (r *DictionaryService) CreateWord(ctx context.Context, polish string, trans
 			Translations: convertedTranslations,
 		}
 
-		if err := txRepo.Add(word); err != nil {
+		fmt.Println("before add")
+
+		if err := txRepo.AddWord(word); err != nil {
 			return err
 		}
+		fmt.Println("after add")
 		return nil
 	})
 }
@@ -97,7 +102,7 @@ func (r *DictionaryService) CreateSentence(ctx context.Context, polish string, e
 
 		newSentence := &dbmodels.Sentence{TranslationID: translation.ID, Sentence: sentence}
 
-		if err := txRepo.Add(newSentence); err != nil {
+		if err := txRepo.AddSentence(newSentence); err != nil {
 			return err
 		}
 		return nil
@@ -128,7 +133,7 @@ func (r *DictionaryService) CreateTranslation(ctx context.Context, polish string
 			Sentences: sentences,
 		}
 
-		if err = txRepo.Add(newTranslation); err != nil {
+		if err = txRepo.AddTranslation(newTranslation); err != nil {
 			return err
 		}
 		return nil
@@ -198,7 +203,7 @@ func (r *DictionaryService) UpdateWord(ctx context.Context, polish string, newPo
 			return err
 		}
 
-		if err := txRepo.Update(&word, newPolish, WORD_UPDATE); err != nil {
+		if err := txRepo.UpdateWord(&word, newPolish); err != nil {
 			return err
 		}
 		return nil
@@ -219,7 +224,7 @@ func (r *DictionaryService) UpdateTranslation(ctx context.Context, polish string
 			return err
 		}
 
-		err = txRepo.Update(&translation, newEnglish, TRANSLATION_UPDATE)
+		err = txRepo.UpdateTranslation(&translation, newEnglish)
 		if err != nil {
 			return err
 		}
@@ -241,7 +246,7 @@ func (r *DictionaryService) UpdateSentence(ctx context.Context, polish string, e
 			return err
 		}
 
-		err = txRepo.Update(&s, newSentence, SENTENCE_UPDATE)
+		err = txRepo.UpdateSentence(&s, newSentence)
 		if err != nil {
 			return err
 		}
@@ -268,9 +273,3 @@ func (r *DictionaryService) SelectWord(ctx context.Context, polish string) (*mod
 		return nil, retErr
 	}
 }
-
-const (
-	WORD_UPDATE        = "polish"
-	TRANSLATION_UPDATE = "english"
-	SENTENCE_UPDATE    = "sentence"
-)

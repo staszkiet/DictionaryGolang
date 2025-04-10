@@ -3,21 +3,24 @@ package database
 import (
 	"errors"
 
-	"github.com/jackc/pgx/v5/pgconn"
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
 	customerrors "github.com/staszkiet/DictionaryGolang/server/errors"
 	"gorm.io/gorm"
 )
 
 type IRepository interface {
-	Add(entity interface{}) error
+	AddWord(word *dbmodels.Word) error
+	AddSentence(sentence *dbmodels.Sentence) error
+	AddTranslation(translation *dbmodels.Translation) error
 	GetWord(polish string, word *dbmodels.Word) error
 	GetSentence(polish string, english string, sentence string, s *dbmodels.Sentence) error
 	DeleteSentence(s dbmodels.Sentence) error
 	GetTranslation(polish string, english string, translation *dbmodels.Translation) error
 	DeleteTranslation(translation *dbmodels.Translation) error
 	DeleteWord(polish string) error
-	Update(entity interface{}, newEntityString string, updateType string) error
+	UpdateWord(entity *dbmodels.Word, newPolish string) error
+	UpdateSentence(entity *dbmodels.Sentence, newSentence string) error
+	UpdateTranslation(entity *dbmodels.Translation, newTranslation string) error
 	WithTransaction(fn func(tx *gorm.DB) error) (bool, error)
 }
 
@@ -36,16 +39,30 @@ func (d *dictionaryRepository) GetWord(polish string, word *dbmodels.Word) error
 	return nil
 }
 
-func (d *dictionaryRepository) Add(entity interface{}) error {
+func (d *dictionaryRepository) AddWord(word *dbmodels.Word) error {
 
-	existsErr := customerrors.GetEntityExistsError(entity)
-
-	if err := d.db.Create(entity).Error; err != nil {
+	if err := d.db.Create(word).Error; err != nil {
 		d.db.Rollback()
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return existsErr
-		}
+		return err
+	}
+	return nil
+
+}
+
+func (d *dictionaryRepository) AddTranslation(translation *dbmodels.Translation) error {
+
+	if err := d.db.Create(translation).Error; err != nil {
+		d.db.Rollback()
+		return err
+	}
+	return nil
+
+}
+
+func (d *dictionaryRepository) AddSentence(sentence *dbmodels.Sentence) error {
+
+	if err := d.db.Create(sentence).Error; err != nil {
+		d.db.Rollback()
 		return err
 	}
 	return nil
@@ -120,17 +137,31 @@ func (d *dictionaryRepository) DeleteWord(polish string) error {
 	return nil
 }
 
-func (d *dictionaryRepository) Update(entity interface{}, newEntity string, updateType string) error {
+func (d *dictionaryRepository) UpdateWord(word *dbmodels.Word, newPolish string) error {
 
-	existsErr := customerrors.GetUpdatedEntityExistsError(entity, newEntity)
-
-	err := d.db.Model(entity).Update(updateType, newEntity).Error
+	err := d.db.Model(word).Update("polish", newPolish).Error
 	if err != nil {
 		d.db.Rollback()
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return existsErr
-		}
+		return err
+	}
+	return nil
+}
+
+func (d *dictionaryRepository) UpdateTranslation(translation *dbmodels.Translation, newTranslation string) error {
+
+	err := d.db.Model(translation).Update("english", newTranslation).Error
+	if err != nil {
+		d.db.Rollback()
+		return err
+	}
+	return nil
+}
+
+func (d *dictionaryRepository) UpdateSentence(sentence *dbmodels.Sentence, newSentence string) error {
+
+	err := d.db.Model(sentence).Update("sentence", newSentence).Error
+	if err != nil {
+		d.db.Rollback()
 		return err
 	}
 	return nil
