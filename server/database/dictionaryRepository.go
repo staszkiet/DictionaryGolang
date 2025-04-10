@@ -138,22 +138,9 @@ func (d *dictionaryRepository) Update(entity interface{}, newEntity string, upda
 
 func (d *dictionaryRepository) WithTransaction(fn func(tx *gorm.DB) error) (bool, error) {
 
-	tx := d.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
-		}
-	}()
-
-	if err := tx.Error; err != nil {
+	if err := d.db.Transaction(fn); err != nil {
 		return false, err
 	}
 
-	if err := fn(tx); err != nil {
-		tx.Rollback()
-		return false, err
-	}
-
-	return true, tx.Commit().Error
+	return true, nil
 }
