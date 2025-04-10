@@ -10,48 +10,48 @@ type MockRepository struct {
 	mock.Mock
 }
 
-func (m *MockRepository) Add(tx *gorm.DB, entity interface{}) error {
-	args := m.Called(tx, entity)
+func (m *MockRepository) Add(entity interface{}) error {
+	args := m.Called(entity)
 	return args.Error(0)
 }
 
-func (m *MockRepository) GetWord(tx *gorm.DB, polish string, word *dbmodels.Word) error {
-	args := m.Called(tx, word)
+func (m *MockRepository) GetWord(polish string, word *dbmodels.Word) error {
+	args := m.Called(word)
 	return args.Error(0)
 }
 
-func (m *MockRepository) GetSentence(tx *gorm.DB, polish string, english string, sentence string, s *dbmodels.Sentence) error {
+func (m *MockRepository) GetSentence(polish string, english string, sentence string, s *dbmodels.Sentence) error {
 
-	args := m.Called(tx, polish, english, sentence, s)
+	args := m.Called(polish, english, sentence, s)
 	return args.Error(0)
 }
 
-func (m *MockRepository) DeleteSentence(tx *gorm.DB, s dbmodels.Sentence) error {
-	args := m.Called(tx, s)
+func (m *MockRepository) DeleteSentence(s dbmodels.Sentence) error {
+	args := m.Called(s)
 	return args.Error(0)
 }
 
-func (m *MockRepository) GetTranslation(tx *gorm.DB, polish string, english string, translation *dbmodels.Translation) error {
+func (m *MockRepository) GetTranslation(polish string, english string, translation *dbmodels.Translation) error {
 
-	args := m.Called(tx, polish, english, translation)
+	args := m.Called(polish, english, translation)
 	return args.Error(0)
 }
 
-func (m *MockRepository) DeleteTranslation(tx *gorm.DB, translation *dbmodels.Translation) error {
+func (m *MockRepository) DeleteTranslation(translation *dbmodels.Translation) error {
 
-	args := m.Called(tx, translation)
+	args := m.Called(translation)
 	return args.Error(0)
 }
 
-func (m *MockRepository) DeleteWord(tx *gorm.DB, polish string) error {
+func (m *MockRepository) DeleteWord(polish string) error {
 
-	args := m.Called(tx, polish)
+	args := m.Called(polish)
 	return args.Error(0)
 }
 
-func (m *MockRepository) Update(tx *gorm.DB, sentence interface{}, newSentence string, updateType string) error {
+func (m *MockRepository) Update(sentence interface{}, newSentence string, updateType string) error {
 
-	args := m.Called(tx, sentence, newSentence, updateType)
+	args := m.Called(sentence, newSentence, updateType)
 	return args.Error(0)
 }
 

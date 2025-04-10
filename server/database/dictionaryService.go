@@ -33,7 +33,7 @@ func NewDatabaseService() *DictionaryService {
 	dbname := os.Getenv("POSTGRES_DBNAME")
 	sslmode := os.Getenv("POSTGRES_SSLMODE")
 
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5432 sslmode=%s",
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5430 sslmode=%s",
 		host, user, password, dbname, sslmode)
 
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -55,6 +55,8 @@ func (r *DictionaryService) CreateWord(ctx context.Context, polish string, trans
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 
+		txRepo := dictionaryRepository{tx}
+
 		sentences := make([]dbmodels.Sentence, 0)
 
 		for _, s := range translation.Sentences {
@@ -73,7 +75,7 @@ func (r *DictionaryService) CreateWord(ctx context.Context, polish string, trans
 			Translations: convertedTranslations,
 		}
 
-		if err := r.repository.Add(tx, word); err != nil {
+		if err := txRepo.Add(word); err != nil {
 			return err
 		}
 		return nil
@@ -85,14 +87,17 @@ func (r *DictionaryService) CreateSentence(ctx context.Context, polish string, e
 	var translation dbmodels.Translation
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
-		err := r.repository.GetTranslation(tx, polish, english, &translation)
+
+		txRepo := dictionaryRepository{tx}
+
+		err := txRepo.GetTranslation(polish, english, &translation)
 		if err != nil {
 			return err
 		}
 
 		newSentence := &dbmodels.Sentence{TranslationID: translation.ID, Sentence: sentence}
 
-		if err := r.repository.Add(tx, newSentence); err != nil {
+		if err := txRepo.Add(newSentence); err != nil {
 			return err
 		}
 		return nil
@@ -104,13 +109,15 @@ func (r *DictionaryService) CreateSentence(ctx context.Context, polish string, e
 func (r *DictionaryService) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+
+		txRepo := dictionaryRepository{tx}
 		var word dbmodels.Word
 		sentences := make([]dbmodels.Sentence, 0)
 
 		for _, s := range translation.Sentences {
 			sentences = append(sentences, dbmodels.Sentence{Sentence: s})
 		}
-		err := r.repository.GetWord(tx, polish, &word)
+		err := txRepo.GetWord(polish, &word)
 		if err != nil {
 			return err
 		}
@@ -121,7 +128,7 @@ func (r *DictionaryService) CreateTranslation(ctx context.Context, polish string
 			Sentences: sentences,
 		}
 
-		if err = r.repository.Add(tx, newTranslation); err != nil {
+		if err = txRepo.Add(newTranslation); err != nil {
 			return err
 		}
 		return nil
@@ -133,13 +140,14 @@ func (r *DictionaryService) CreateTranslation(ctx context.Context, polish string
 func (r *DictionaryService) DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+		txRepo := dictionaryRepository{tx}
 		var s dbmodels.Sentence
-		err := r.repository.GetSentence(tx, polish, english, sentence, &s)
+		err := txRepo.GetSentence(polish, english, sentence, &s)
 		if err != nil {
 			return err
 		}
 
-		if err := r.repository.DeleteSentence(tx, s); err != nil {
+		if err := txRepo.DeleteSentence(s); err != nil {
 			return err
 		}
 		return nil
@@ -153,12 +161,13 @@ func (r *DictionaryService) DeleteTranslation(ctx context.Context, polish string
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		var translation dbmodels.Translation
-		err := r.repository.GetTranslation(tx, polish, english, &translation)
+		txRepo := dictionaryRepository{tx}
+		err := txRepo.GetTranslation(polish, english, &translation)
 		if err != nil {
 			return err
 		}
 
-		if err := r.repository.DeleteTranslation(tx, &translation); err != nil {
+		if err := txRepo.DeleteTranslation(&translation); err != nil {
 			return err
 		}
 		return nil
@@ -170,7 +179,8 @@ func (r *DictionaryService) DeleteTranslation(ctx context.Context, polish string
 func (r *DictionaryService) DeleteWord(ctx context.Context, polish string) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
-		if err := r.repository.DeleteWord(tx, polish); err != nil {
+		txRepo := dictionaryRepository{tx}
+		if err := txRepo.DeleteWord(polish); err != nil {
 			return err
 		}
 		return nil
@@ -181,13 +191,14 @@ func (r *DictionaryService) DeleteWord(ctx context.Context, polish string) (bool
 func (r *DictionaryService) UpdateWord(ctx context.Context, polish string, newPolish string) (bool, error) {
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+		txRepo := dictionaryRepository{tx}
 		var word dbmodels.Word
-		err := r.repository.GetWord(tx, polish, &word)
+		err := txRepo.GetWord(polish, &word)
 		if err != nil {
 			return err
 		}
 
-		if err := r.repository.Update(tx, &word, newPolish, WORD_UPDATE); err != nil {
+		if err := txRepo.Update(&word, newPolish, WORD_UPDATE); err != nil {
 			return err
 		}
 		return nil
@@ -200,14 +211,15 @@ func (r *DictionaryService) UpdateTranslation(ctx context.Context, polish string
 
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 		var translation dbmodels.Translation
+		txRepo := dictionaryRepository{tx}
 
-		err := r.repository.GetTranslation(tx, polish, english, &translation)
+		err := txRepo.GetTranslation(polish, english, &translation)
 
 		if err != nil {
 			return err
 		}
 
-		err = r.repository.Update(tx, &translation, newEnglish, TRANSLATION_UPDATE)
+		err = txRepo.Update(&translation, newEnglish, TRANSLATION_UPDATE)
 		if err != nil {
 			return err
 		}
@@ -222,13 +234,14 @@ func (r *DictionaryService) UpdateSentence(ctx context.Context, polish string, e
 	return r.repository.WithTransaction(func(tx *gorm.DB) error {
 
 		var s dbmodels.Sentence
-		err := r.repository.GetSentence(tx, polish, english, sentence, &s)
+		txRepo := dictionaryRepository{tx}
+		err := txRepo.GetSentence(polish, english, sentence, &s)
 
 		if err != nil {
 			return err
 		}
 
-		err = r.repository.Update(tx, &s, newSentence, SENTENCE_UPDATE)
+		err = txRepo.Update(&s, newSentence, SENTENCE_UPDATE)
 		if err != nil {
 			return err
 		}
@@ -243,7 +256,8 @@ func (r *DictionaryService) SelectWord(ctx context.Context, polish string) (*mod
 	var err error
 
 	_, retErr := r.repository.WithTransaction(func(tx *gorm.DB) error {
-		if err = r.repository.GetWord(tx, polish, &word); err != nil {
+		txRepo := dictionaryRepository{tx}
+		if err = txRepo.GetWord(polish, &word); err != nil {
 			return err
 		}
 		return nil
