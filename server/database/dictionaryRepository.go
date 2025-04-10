@@ -21,11 +21,18 @@ type IRepository interface {
 	UpdateWord(entity *dbmodels.Word, newPolish string) error
 	UpdateSentence(entity *dbmodels.Sentence, newSentence string) error
 	UpdateTranslation(entity *dbmodels.Translation, newTranslation string) error
-	WithTransaction(fn func(tx *gorm.DB) error) (bool, error)
+	WithTransaction(fn func(tx IRepository) error) (bool, error)
+	withTx(tx *gorm.DB) IRepository
 }
 
 type dictionaryRepository struct {
 	db *gorm.DB
+}
+
+func (r *dictionaryRepository) withTx(tx *gorm.DB) IRepository {
+	return &dictionaryRepository{
+		db: tx,
+	}
 }
 
 func (d *dictionaryRepository) GetWord(polish string, word *dbmodels.Word) error {
@@ -167,11 +174,17 @@ func (d *dictionaryRepository) UpdateSentence(sentence *dbmodels.Sentence, newSe
 	return nil
 }
 
-func (d *dictionaryRepository) WithTransaction(fn func(tx *gorm.DB) error) (bool, error) {
+func (d *dictionaryRepository) WithTransaction(fn func(repo IRepository) error) (bool, error) {
 
-	if err := d.db.Transaction(fn); err != nil {
+	tx := d.db.Begin()
+	if tx.Error != nil {
+		return false, tx.Error
+	}
+	repo := d.withTx(tx)
+	err := fn(repo)
+	if err != nil {
+		tx.Rollback()
 		return false, err
 	}
-
-	return true, nil
+	return true, tx.Commit().Error
 }

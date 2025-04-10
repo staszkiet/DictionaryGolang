@@ -1,8 +1,6 @@
 package database
 
 import (
-	"fmt"
-
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
@@ -14,7 +12,6 @@ type MockRepository struct {
 
 func (m *MockRepository) AddWord(word *dbmodels.Word) error {
 	args := m.Called(word)
-	fmt.Println("called add word")
 	return args.Error(0)
 }
 
@@ -80,15 +77,18 @@ func (m *MockRepository) UpdateSentence(sentence *dbmodels.Sentence, newSentence
 	return args.Error(0)
 }
 
-func (m *MockRepository) WithTransaction(fn func(tx *gorm.DB) error) (bool, error) {
+func (m *MockRepository) WithTransaction(fn func(repo IRepository) error) (bool, error) {
 
 	args := m.Called(fn)
 	var err error
 
-	mockTx := &gorm.DB{}
 	if fn != nil {
-		err = fn(mockTx)
+		err = fn(m)
 	}
 
 	return args.Bool(0), err
+}
+
+func (r *MockRepository) withTx(tx *gorm.DB) IRepository {
+	return &MockRepository{}
 }

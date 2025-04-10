@@ -23,29 +23,29 @@ func TestCreateWord_Success(t *testing.T) {
 		Sentences: []string{"This is my house", "I bought a new house"},
 	}
 
-	// expectedWord := &dbmodels.Word{
-	// 	Polish: polish,
-	// 	Translations: []dbmodels.Translation{
-	// 		{
-	// 			English: translation.English,
-	// 			Sentences: []dbmodels.Sentence{
-	// 				{Sentence: "This is my house"},
-	// 				{Sentence: "I bought a new house"},
-	// 			},
-	// 		},
-	// 	},
-	// }
+	expectedWord := &dbmodels.Word{
+		Polish: polish,
+		Translations: []dbmodels.Translation{
+			{
+				English: translation.English,
+				Sentences: []dbmodels.Sentence{
+					{Sentence: "This is my house"},
+					{Sentence: "I bought a new house"},
+				},
+			},
+		},
+	}
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(true)
 
 	mockRepo.On("AddWord", mock.Anything).
-		Return(nil)
-		// Run(func(args mock.Arguments) {
-		// 	wordArg := args.Get(0).(*dbmodels.Word)
-		// 	assert.Equal(t, expectedWord.Polish, wordArg.Polish)
-		// 	assert.Equal(t, expectedWord.Translations[0].English, wordArg.Translations[0].English)
-		// 	assert.ElementsMatch(t, expectedWord.Translations[0].Sentences, wordArg.Translations[0].Sentences)
-		// })
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			wordArg := args.Get(0).(*dbmodels.Word)
+			assert.Equal(t, expectedWord.Polish, wordArg.Polish)
+			assert.Equal(t, expectedWord.Translations[0].English, wordArg.Translations[0].English)
+			assert.ElementsMatch(t, expectedWord.Translations[0].Sentences, wordArg.Translations[0].Sentences)
+		})
 	success, err := dbService.CreateWord(context.Background(), polish, translation)
 
 	assert.NoError(t, err)
@@ -113,14 +113,14 @@ func TestCreateTranslation_Success(t *testing.T) {
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(true)
 	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(1).(*dbmodels.Word)
+		wordArg := args.Get(0).(*dbmodels.Word)
 		*(wordArg) = *(dbWord)
 	})
 
 	mockRepo.On("AddTranslation", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
-			wordArg := args.Get(1).(*dbmodels.Translation)
+			wordArg := args.Get(0).(*dbmodels.Translation)
 			assert.Equal(t, expectedTranslation, wordArg)
 		})
 
@@ -160,7 +160,7 @@ func TestCreateTranslation_TranslationAlreadyExists(t *testing.T) {
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(false)
 	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(1).(*dbmodels.Word)
+		wordArg := args.Get(0).(*dbmodels.Word)
 		*(wordArg) = *(dbWord)
 	})
 
@@ -197,15 +197,15 @@ func TestCreateSentence_Success(t *testing.T) {
 	}
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(true)
-	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(3).(*dbmodels.Translation)
+	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(2).(*dbmodels.Translation)
 		*(wordArg) = *(dbTranslation)
 	})
 
 	mockRepo.On("AddSentence", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
-			wordArg := args.Get(1).(*dbmodels.Sentence)
+			wordArg := args.Get(0).(*dbmodels.Sentence)
 			assert.Equal(t, expectedSentence, wordArg)
 		})
 
@@ -236,8 +236,8 @@ func TestCreateSentence_SentenceAlreadyExists(t *testing.T) {
 	expectedError := customerrors.SentenceExistsError{Sentence: sentence}
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(false)
-	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(3).(*dbmodels.Translation)
+	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(2).(*dbmodels.Translation)
 		*(wordArg) = *(dbTranslation)
 	})
 
@@ -263,15 +263,15 @@ func TestDeleteSentence_Success(t *testing.T) {
 	dbSentence := dbmodels.Sentence{Sentence: "I have never read a book"}
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
-	mockRepo.On("GetSentence", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(4).(*dbmodels.Sentence)
+	mockRepo.On("GetSentence", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(3).(*dbmodels.Sentence)
 		*(wordArg) = dbSentence
 	})
 
 	mockRepo.On("DeleteSentence", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
-			wordArg := args.Get(1).(dbmodels.Sentence)
+			wordArg := args.Get(0).(dbmodels.Sentence)
 			assert.Equal(t, wordArg, dbSentence)
 		})
 
@@ -321,15 +321,15 @@ func TestDeleteTranslation_Success(t *testing.T) {
 	}
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
-	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(3).(*dbmodels.Translation)
+	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(2).(*dbmodels.Translation)
 		*(wordArg) = *(dbTranslation)
 	})
 
-	mockRepo.On("DeleteTranslation", mock.Anything, mock.Anything, mock.Anything).
+	mockRepo.On("DeleteTranslation", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
-			wordArg := args.Get(1).(*dbmodels.Translation)
+			wordArg := args.Get(0).(*dbmodels.Translation)
 			assert.Equal(t, wordArg.English, dbTranslation.English)
 			assert.ElementsMatch(t, wordArg.Sentences, dbTranslation.Sentences)
 		})
@@ -426,8 +426,8 @@ func TestUpdateWord_Success(t *testing.T) {
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
 
-	mockRepo.On("GetWord", mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(1).(*dbmodels.Word)
+	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(0).(*dbmodels.Word)
 		*(wordArg) = *(dbWord)
 	})
 
@@ -486,8 +486,8 @@ func TestUpdateWord_UpdatedWordExists(t *testing.T) {
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(false)
 
-	mockRepo.On("GetWord", mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(1).(*dbmodels.Word)
+	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(0).(*dbmodels.Word)
 		*(wordArg) = *(dbWord)
 	})
 
@@ -516,8 +516,8 @@ func TestUpdateSentence_Success(t *testing.T) {
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
 
-	mockRepo.On("GetSentence", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(4).(*dbmodels.Sentence)
+	mockRepo.On("GetSentence", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(3).(*dbmodels.Sentence)
 		*(wordArg) = *(dbSentence)
 	})
 
@@ -571,8 +571,8 @@ func TestUpdateSentence_UpdatedSentenceExists(t *testing.T) {
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(false)
 
-	mockRepo.On("GetSentence", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(4).(*dbmodels.Sentence)
+	mockRepo.On("GetSentence", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(3).(*dbmodels.Sentence)
 		*(wordArg) = *(dbSentence)
 	})
 
@@ -606,8 +606,8 @@ func TestUpdateTranslation_Success(t *testing.T) {
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
 
-	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(3).(*dbmodels.Translation)
+	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(2).(*dbmodels.Translation)
 		*(wordArg) = *(dbTranslation)
 	})
 
@@ -665,8 +665,8 @@ func TestUpdateTranslation_UpdatedTranslationExists(t *testing.T) {
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(false)
 
-	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(3).(*dbmodels.Translation)
+	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(2).(*dbmodels.Translation)
 		*(wordArg) = *(dbTranslation)
 	})
 
@@ -716,7 +716,7 @@ func TestSelectWord_Success(t *testing.T) {
 	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
 
 	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(1).(*dbmodels.Word)
+		wordArg := args.Get(0).(*dbmodels.Word)
 		*(wordArg) = *(dbWord)
 	})
 
