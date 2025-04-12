@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
@@ -36,6 +37,8 @@ func TestCreateWord_Success(t *testing.T) {
 		},
 	}
 
+	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(fmt.Errorf("blad"))
+
 	mockRepo.On("WithTransaction", mock.Anything).Return(true)
 
 	mockRepo.On("AddWord", mock.Anything).
@@ -46,7 +49,7 @@ func TestCreateWord_Success(t *testing.T) {
 			assert.Equal(t, expectedWord.Translations[0].English, wordArg.Translations[0].English)
 			assert.ElementsMatch(t, expectedWord.Translations[0].Sentences, wordArg.Translations[0].Sentences)
 		})
-	success, err := dbService.CreateWord(context.Background(), polish, translation)
+	success, err := dbService.CreateWordOrAddTranslationOrSentence(context.Background(), polish, translation)
 
 	assert.NoError(t, err)
 	assert.True(t, success)
@@ -54,31 +57,7 @@ func TestCreateWord_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestCreateWord_WordAlreadyExists(t *testing.T) {
-
-	mockRepo := new(MockRepository)
-	dbService := &DictionaryService{repository: mockRepo}
-	polish := "dom"
-	translation := model.NewTranslation{
-		English:   "house",
-		Sentences: []string{"This is my house", "I bought a new house"},
-	}
-
-	expectedError := customerrors.WordExistsError{Word: polish}
-
-	mockRepo.On("WithTransaction", mock.Anything).Return(false, nil)
-
-	mockRepo.On("AddWord", mock.Anything).Return(expectedError)
-	success, err := dbService.CreateWord(context.Background(), polish, translation)
-
-	assert.Error(t, err)
-	assert.False(t, success)
-	assert.Equal(t, expectedError, err)
-
-	mockRepo.AssertExpectations(t)
-}
-
-func TestCreateTranslation_Success(t *testing.T) {
+func TestCreateWord_WordExistsButTranslationDoesnt_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -117,6 +96,8 @@ func TestCreateTranslation_Success(t *testing.T) {
 		*(wordArg) = *(dbWord)
 	})
 
+	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("blad"))
+
 	mockRepo.On("AddTranslation", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
@@ -124,7 +105,7 @@ func TestCreateTranslation_Success(t *testing.T) {
 			assert.Equal(t, expectedTranslation, wordArg)
 		})
 
-	success, err := dbService.CreateTranslation(context.Background(), polish, translation)
+	success, err := dbService.CreateWordOrAddTranslationOrSentence(context.Background(), polish, translation)
 
 	assert.NoError(t, err)
 	assert.True(t, success)
@@ -132,50 +113,7 @@ func TestCreateTranslation_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestCreateTranslation_TranslationAlreadyExists(t *testing.T) {
-	mockRepo := new(MockRepository)
-	dbService := &DictionaryService{repository: mockRepo}
-
-	polish := "pisać"
-	translation := model.NewTranslation{
-		English:   "write",
-		Sentences: []string{"I write poems", "I write books"},
-	}
-
-	dbWord := &dbmodels.Word{
-		ID:     2,
-		Polish: "pisać",
-		Translations: []dbmodels.Translation{
-			{
-				English: "write",
-				Sentences: []dbmodels.Sentence{
-					{Sentence: "I often write"},
-					{Sentence: "What should I write?"},
-				},
-			},
-		},
-	}
-
-	expectedError := customerrors.TranslationExistsError{Translation: translation.English}
-
-	mockRepo.On("WithTransaction", mock.Anything).Return(false)
-	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		wordArg := args.Get(0).(*dbmodels.Word)
-		*(wordArg) = *(dbWord)
-	})
-
-	mockRepo.On("AddTranslation", mock.Anything).Return(expectedError)
-
-	success, err := dbService.CreateTranslation(context.Background(), polish, translation)
-
-	assert.Error(t, err)
-	assert.False(t, success)
-	assert.Equal(t, expectedError, err)
-
-	mockRepo.AssertExpectations(t)
-}
-
-func TestCreateSentence_Success(t *testing.T) {
+func TestCreateWord_WordAndTranslationAlreadyExistsButSomeSentencesDont_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -191,25 +129,39 @@ func TestCreateSentence_Success(t *testing.T) {
 		},
 	}
 
-	expectedSentence := &dbmodels.Sentence{
-		TranslationID: 2,
-		Sentence:      "I have never read a book",
+	dbWord := &dbmodels.Word{
+		ID:     2,
+		Polish: "pisać",
+		Translations: []dbmodels.Translation{
+			*dbTranslation,
+		},
 	}
 
+	expectedSentence := []dbmodels.Sentence{dbmodels.Sentence{
+		TranslationID: 2,
+		Sentence:      "I have never read a book",
+	}}
+
 	mockRepo.On("WithTransaction", mock.Anything).Return(true)
+
+	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(0).(*dbmodels.Word)
+		*(wordArg) = *(dbWord)
+	})
 	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		wordArg := args.Get(2).(*dbmodels.Translation)
 		*(wordArg) = *(dbTranslation)
 	})
 
-	mockRepo.On("AddSentence", mock.Anything).
+	mockRepo.On("AddSentences", mock.Anything).
 		Return(nil).
 		Run(func(args mock.Arguments) {
-			wordArg := args.Get(0).(*dbmodels.Sentence)
+			wordArg := args.Get(0).([]dbmodels.Sentence)
 			assert.Equal(t, expectedSentence, wordArg)
 		})
 
-	success, err := dbService.CreateSentence(context.Background(), polish, English, sentence)
+	success, err := dbService.CreateWordOrAddTranslationOrSentence(context.Background(), polish,
+		model.NewTranslation{English: English, Sentences: []string{sentence}})
 
 	assert.NoError(t, err)
 	assert.True(t, success)
@@ -217,7 +169,7 @@ func TestCreateSentence_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestCreateSentence_SentenceAlreadyExists(t *testing.T) {
+func TestCreateWord_WordTranslationAndAllSentencesAlreadyExist(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -233,26 +185,34 @@ func TestCreateSentence_SentenceAlreadyExists(t *testing.T) {
 		},
 	}
 
-	expectedError := customerrors.SentenceExistsError{Sentence: sentence}
+	dbWord := &dbmodels.Word{
+		ID:     2,
+		Polish: "pisać",
+		Translations: []dbmodels.Translation{
+			*dbTranslation,
+		},
+	}
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(false)
+	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		wordArg := args.Get(0).(*dbmodels.Word)
+		*(wordArg) = *(dbWord)
+	})
 	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		wordArg := args.Get(2).(*dbmodels.Translation)
 		*(wordArg) = *(dbTranslation)
 	})
 
-	mockRepo.On("AddSentence", mock.Anything).Return(expectedError)
+	success, err := dbService.CreateWordOrAddTranslationOrSentence(context.Background(), polish,
+		model.NewTranslation{English: English, Sentences: []string{sentence}})
 
-	success, err := dbService.CreateSentence(context.Background(), polish, English, sentence)
-
-	assert.Error(t, err)
+	assert.Nil(t, err)
 	assert.False(t, success)
-	assert.Equal(t, expectedError, err)
 
 	mockRepo.AssertExpectations(t)
 }
 
-func TestDeleteSentence_Success(t *testing.T) {
+func TestDeleteSentence_SentenceExists_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 

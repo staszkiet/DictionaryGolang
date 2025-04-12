@@ -89,7 +89,7 @@ func (s *DictionaryTestSuite) TestCreateWord() {
 	baseWord := "rower"
 	translation := model.NewTranslation{English: "bike", Sentences: []string{"I like my bike"}}
 
-	_, err := s.svc.CreateWord(context.Background(), baseWord, translation)
+	_, err := s.svc.CreateWordOrAddTranslationOrSentence(context.Background(), baseWord, translation)
 
 	assert.NoError(s.T(), err)
 
@@ -112,13 +112,13 @@ func (s *DictionaryTestSuite) TestCreateWordParallel() {
 
 	go func() {
 		defer wg.Done()
-		_, err := s.svc.CreateWord(context.Background(), baseWord, translation1)
+		_, err := s.svc.CreateWordOrAddTranslationOrSentence(context.Background(), baseWord, translation1)
 		retChan <- err
 	}()
 
 	go func() {
 		defer wg.Done()
-		_, err := s.svc.CreateWord(context.Background(), baseWord, translation2)
+		_, err := s.svc.CreateWordOrAddTranslationOrSentence(context.Background(), baseWord, translation2)
 		retChan <- err
 	}()
 
@@ -131,12 +131,8 @@ func (s *DictionaryTestSuite) TestCreateWordParallel() {
 	}
 
 	assert.Equal(s.T(), 2, len(errors))
-	if assert.Nil(s.T(), errors[0], "First result should be nil") {
-		assert.NotNil(s.T(), errors[1], "Second result should not be nil")
-	} else {
-		assert.Nil(s.T(), errors[1], "Second result should be nil")
-		assert.NotNil(s.T(), errors[0], "First result should not be nil")
-	}
+	assert.Nil(s.T(), errors[0])
+	assert.Nil(s.T(), errors[1])
 
 	var count int64
 	s.DB.Model(&dbmodels.Word{}).Where("polish = ?", baseWord).Count(&count)

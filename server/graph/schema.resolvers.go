@@ -12,17 +12,17 @@ import (
 
 // CreateWord is the resolver for the createWord field.
 func (r *mutationResolver) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
-	return r.DB.CreateWord(ctx, polish, translation)
+	return r.DB.CreateWordOrAddTranslationOrSentence(ctx, polish, translation)
 }
 
 // CreateSentence is the resolver for the createSentence field.
 func (r *mutationResolver) CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
-	return r.DB.CreateSentence(ctx, polish, english, sentence)
+	return r.DB.CreateWordOrAddTranslationOrSentence(ctx, polish, model.NewTranslation{English: english, Sentences: []string{sentence}})
 }
 
 // CreateTranslation is the resolver for the createTranslation field.
 func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
-	return r.DB.CreateTranslation(ctx, polish, translation)
+	return r.DB.CreateWordOrAddTranslationOrSentence(ctx, polish, translation)
 }
 
 // DeleteSentence is the resolver for the deleteSentence field.

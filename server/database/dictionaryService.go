@@ -51,9 +51,52 @@ func NewDatabaseService() *DictionaryService {
 }
 
 // Adds a translation to the dictionary (assumes that polish part wasn't in the dictionary at the time of calling)
-func (r *DictionaryService) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
+func (r *DictionaryService) CreateWordOrAddTranslationOrSentence(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
 
 	return r.repository.WithTransaction(func(txRepo IRepository) error {
+
+		var dbword dbmodels.Word
+		var dbtranslation dbmodels.Translation
+
+		if err := txRepo.GetWord(polish, &dbword); err == nil {
+			if err = txRepo.GetTranslation(polish, translation.English, &dbtranslation); err == nil {
+				existingSentencesMap := make(map[string]bool)
+				newSentences := make([]dbmodels.Sentence, 0)
+
+				for _, s := range dbtranslation.Sentences {
+					existingSentencesMap[s.Sentence] = true
+				}
+
+				for _, s := range translation.Sentences {
+					if !existingSentencesMap[s] {
+						newSentences = append(newSentences, dbmodels.Sentence{Sentence: s, TranslationID: dbtranslation.ID})
+					}
+				}
+
+				if len(newSentences) > 0 {
+					txRepo.AddSentences(newSentences)
+				}
+
+				return nil
+			} else {
+				sentences := make([]dbmodels.Sentence, 0)
+
+				for _, s := range translation.Sentences {
+					sentences = append(sentences, dbmodels.Sentence{Sentence: s})
+				}
+				newTranslation := &dbmodels.Translation{
+					WordID:    dbword.ID,
+					English:   translation.English,
+					Sentences: sentences,
+				}
+
+				if err = txRepo.AddTranslation(newTranslation); err != nil {
+					return err
+				}
+
+				return nil
+			}
+		}
 
 		sentences := make([]dbmodels.Sentence, 0)
 
@@ -78,57 +121,6 @@ func (r *DictionaryService) CreateWord(ctx context.Context, polish string, trans
 		}
 		return nil
 	})
-}
-
-// Adds and examplse sentence to the existing translation
-func (r *DictionaryService) CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
-	var translation dbmodels.Translation
-
-	return r.repository.WithTransaction(func(txRepo IRepository) error {
-
-		err := txRepo.GetTranslation(polish, english, &translation)
-		if err != nil {
-			return err
-		}
-
-		newSentence := &dbmodels.Sentence{TranslationID: translation.ID, Sentence: sentence}
-
-		if err := txRepo.AddSentence(newSentence); err != nil {
-			return err
-		}
-		return nil
-	})
-
-}
-
-// Adds a translation to the dictionary (assumes that the polish part already exists in the dictionary with another translation of it)
-func (r *DictionaryService) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
-
-	return r.repository.WithTransaction(func(txRepo IRepository) error {
-
-		var word dbmodels.Word
-		sentences := make([]dbmodels.Sentence, 0)
-
-		for _, s := range translation.Sentences {
-			sentences = append(sentences, dbmodels.Sentence{Sentence: s})
-		}
-		err := txRepo.GetWord(polish, &word)
-		if err != nil {
-			return err
-		}
-
-		newTranslation := &dbmodels.Translation{
-			WordID:    word.ID,
-			English:   translation.English,
-			Sentences: sentences,
-		}
-
-		if err = txRepo.AddTranslation(newTranslation); err != nil {
-			return err
-		}
-		return nil
-	})
-
 }
 
 // Deletes an example sentence from given translation

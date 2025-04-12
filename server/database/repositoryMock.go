@@ -20,8 +20,8 @@ func (m *MockRepository) AddTranslation(translation *dbmodels.Translation) error
 	return args.Error(0)
 }
 
-func (m *MockRepository) AddSentence(sentence *dbmodels.Sentence) error {
-	args := m.Called(sentence)
+func (m *MockRepository) AddSentences(sentences []dbmodels.Sentence) error {
+	args := m.Called(sentences)
 	return args.Error(0)
 }
 

@@ -10,7 +10,7 @@ import (
 
 type IRepository interface {
 	AddWord(word *dbmodels.Word) error
-	AddSentence(sentence *dbmodels.Sentence) error
+	AddSentences(sentences []dbmodels.Sentence) error
 	AddTranslation(translation *dbmodels.Translation) error
 	GetWord(polish string, word *dbmodels.Word) error
 	GetSentence(polish string, english string, sentence string, s *dbmodels.Sentence) error
@@ -49,7 +49,6 @@ func (d *dictionaryRepository) GetWord(polish string, word *dbmodels.Word) error
 func (d *dictionaryRepository) AddWord(word *dbmodels.Word) error {
 
 	if err := d.db.Create(word).Error; err != nil {
-		d.db.Rollback()
 		return err
 	}
 	return nil
@@ -59,17 +58,15 @@ func (d *dictionaryRepository) AddWord(word *dbmodels.Word) error {
 func (d *dictionaryRepository) AddTranslation(translation *dbmodels.Translation) error {
 
 	if err := d.db.Create(translation).Error; err != nil {
-		d.db.Rollback()
 		return err
 	}
 	return nil
 
 }
 
-func (d *dictionaryRepository) AddSentence(sentence *dbmodels.Sentence) error {
+func (d *dictionaryRepository) AddSentences(sentences []dbmodels.Sentence) error {
 
-	if err := d.db.Create(sentence).Error; err != nil {
-		d.db.Rollback()
+	if err := d.db.Create(sentences).Error; err != nil {
 		return err
 	}
 	return nil
@@ -83,7 +80,6 @@ func (d *dictionaryRepository) GetSentence(polish string, english string, senten
 		Where("words.polish = ? AND translations.english = ? AND sentences.sentence = ?", polish, english, sentence).
 		First(s).Error
 	if err != nil {
-		d.db.Rollback()
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return customerrors.SentenceNotExistsError{Word: polish, Translation: english, Sentence: sentence}
 		}
@@ -105,7 +101,6 @@ func (d *dictionaryRepository) GetTranslation(polish string, english string, tra
 		Where("words.polish = ? AND translations.english = ?", polish, english).
 		First(translation).Error
 	if err != nil {
-		d.db.Rollback()
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return customerrors.TranslationNotExistsError{Word: polish, Translation: english}
 		}
@@ -123,13 +118,11 @@ func (d *dictionaryRepository) DeleteTranslation(translation *dbmodels.Translati
 	}
 
 	if err := d.db.Model(&dbmodels.Translation{}).Where("word_id = ?", translation.WordID).Count(&count).Error; err != nil {
-		d.db.Rollback()
 		return err
 	}
 
 	if count == 0 {
 		if err := d.db.Where("ID = ?", translation.WordID).Delete(&dbmodels.Word{}).Error; err != nil {
-			d.db.Rollback()
 			return err
 		}
 	}
@@ -148,7 +141,6 @@ func (d *dictionaryRepository) UpdateWord(word *dbmodels.Word, newPolish string)
 
 	err := d.db.Model(word).Update("polish", newPolish).Error
 	if err != nil {
-		d.db.Rollback()
 		return err
 	}
 	return nil
@@ -158,7 +150,6 @@ func (d *dictionaryRepository) UpdateTranslation(translation *dbmodels.Translati
 
 	err := d.db.Model(translation).Update("english", newTranslation).Error
 	if err != nil {
-		d.db.Rollback()
 		return err
 	}
 	return nil
@@ -168,7 +159,7 @@ func (d *dictionaryRepository) UpdateSentence(sentence *dbmodels.Sentence, newSe
 
 	err := d.db.Model(sentence).Update("sentence", newSentence).Error
 	if err != nil {
-		d.db.Rollback()
+
 		return err
 	}
 	return nil
@@ -176,15 +167,16 @@ func (d *dictionaryRepository) UpdateSentence(sentence *dbmodels.Sentence, newSe
 
 func (d *dictionaryRepository) WithTransaction(fn func(repo IRepository) error) (bool, error) {
 
-	tx := d.db.Begin()
-	if tx.Error != nil {
-		return false, tx.Error
-	}
-	repo := d.withTx(tx)
-	err := fn(repo)
+	err := d.db.Transaction(
+		func(tx *gorm.DB) error {
+			repo := d.withTx(tx)
+			err := fn(repo)
+			return err
+		})
+
 	if err != nil {
-		tx.Rollback()
 		return false, err
 	}
-	return true, tx.Commit().Error
+
+	return true, nil
 }
