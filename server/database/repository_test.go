@@ -330,8 +330,6 @@ func TestDeleteWord_Success(t *testing.T) {
 
 	polish := "książka"
 
-	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
-
 	mockRepo.On("DeleteWord", mock.Anything, mock.Anything).Return(nil)
 
 	success, err := dbService.DeleteWord(context.Background(), polish)
@@ -350,8 +348,6 @@ func TestDeleteWord_WordDoesntExist(t *testing.T) {
 	polish := "książka"
 
 	expectedError := customerrors.WordNotExistsError{Word: polish}
-
-	mockRepo.On("WithTransaction", mock.Anything).Return(false)
 
 	mockRepo.On("DeleteWord", mock.Anything, mock.Anything).Return(expectedError)
 
@@ -673,8 +669,6 @@ func TestSelectWord_Success(t *testing.T) {
 		},
 	}
 
-	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
-
 	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		wordArg := args.Get(0).(*dbmodels.Word)
 		*(wordArg) = *(dbWord)
@@ -695,8 +689,6 @@ func TestSelectWord_WordDoesntExist(t *testing.T) {
 	polish := "dom"
 
 	expectedError := customerrors.WordNotExistsError{Word: polish}
-
-	mockRepo.On("WithTransaction", mock.Anything).Return(true, nil)
 
 	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(expectedError)
 

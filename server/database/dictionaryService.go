@@ -2,12 +2,14 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/joho/godotenv"
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
+	customerrors "github.com/staszkiet/DictionaryGolang/server/errors"
 
 	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 	"gorm.io/driver/postgres"
@@ -130,6 +132,9 @@ func (r *DictionaryService) DeleteSentence(ctx context.Context, polish string, e
 		var s dbmodels.Sentence
 		err := txRepo.GetSentence(polish, english, sentence, &s)
 		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil
+			}
 			return err
 		}
 
@@ -149,6 +154,9 @@ func (r *DictionaryService) DeleteTranslation(ctx context.Context, polish string
 		var translation dbmodels.Translation
 		err := txRepo.GetTranslation(polish, english, &translation)
 		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil
+			}
 			return err
 		}
 
@@ -163,12 +171,13 @@ func (r *DictionaryService) DeleteTranslation(ctx context.Context, polish string
 // Deletes whole translation (polish part, english counterparts and its sentences)
 func (r *DictionaryService) DeleteWord(ctx context.Context, polish string) (bool, error) {
 
-	return r.repository.WithTransaction(func(txRepo IRepository) error {
-		if err := txRepo.DeleteWord(polish); err != nil {
-			return err
+	if err := r.repository.DeleteWord(polish); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return true, nil
 		}
-		return nil
-	})
+		return false, err
+	}
+	return true, nil
 }
 
 // Updates polish part of the translation
@@ -178,6 +187,9 @@ func (r *DictionaryService) UpdateWord(ctx context.Context, polish string, newPo
 		var word dbmodels.Word
 		err := txRepo.GetWord(polish, &word)
 		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return customerrors.WordNotExistsError{Word: polish}
+			}
 			return err
 		}
 
@@ -196,8 +208,10 @@ func (r *DictionaryService) UpdateTranslation(ctx context.Context, polish string
 		var translation dbmodels.Translation
 
 		err := txRepo.GetTranslation(polish, english, &translation)
-
 		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return customerrors.TranslationNotExistsError{Word: polish, Translation: english}
+			}
 			return err
 		}
 
@@ -217,8 +231,10 @@ func (r *DictionaryService) UpdateSentence(ctx context.Context, polish string, e
 
 		var s dbmodels.Sentence
 		err := txRepo.GetSentence(polish, english, sentence, &s)
-
 		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return customerrors.SentenceNotExistsError{Word: polish, Translation: english, Sentence: sentence}
+			}
 			return err
 		}
 
@@ -236,15 +252,12 @@ func (r *DictionaryService) SelectWord(ctx context.Context, polish string) (*mod
 	var word dbmodels.Word
 	var err error
 
-	_, retErr := r.repository.WithTransaction(func(txRepo IRepository) error {
-		if err = txRepo.GetWord(polish, &word); err != nil {
-			return err
+	if err = r.repository.GetWord(polish, &word); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, customerrors.WordNotExistsError{Word: polish}
 		}
-		return nil
-	})
-	if retErr == nil {
-		return dbmodels.DBWordToGQLWord(&word), nil
-	} else {
-		return nil, retErr
+		return nil, err
 	}
+
+	return dbmodels.DBWordToGQLWord(&word), nil
 }

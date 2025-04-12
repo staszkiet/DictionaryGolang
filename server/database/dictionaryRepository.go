@@ -159,7 +159,6 @@ func (d *dictionaryRepository) UpdateSentence(sentence *dbmodels.Sentence, newSe
 
 	err := d.db.Model(sentence).Update("sentence", newSentence).Error
 	if err != nil {
-
 		return err
 	}
 	return nil
