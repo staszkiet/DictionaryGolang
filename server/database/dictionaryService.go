@@ -1,7 +1,6 @@
 package database
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -52,8 +51,9 @@ func NewDatabaseService() *DictionaryService {
 
 }
 
-// Adds a translation to the dictionary (assumes that polish part wasn't in the dictionary at the time of calling)
-func (r *DictionaryService) CreateWordOrAddTranslationOrSentence(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
+// Adds a translation to the dictionary (whether given polish word exists or not). I translation to given word already exists then adds
+// sum of sentences to the translation
+func (r *DictionaryService) CreateWordOrAddTranslationOrSentence(polish string, translation model.NewTranslation) (bool, error) {
 
 	return r.repository.WithTransaction(func(txRepo IRepository) error {
 
@@ -126,7 +126,7 @@ func (r *DictionaryService) CreateWordOrAddTranslationOrSentence(ctx context.Con
 }
 
 // Deletes an example sentence from given translation
-func (r *DictionaryService) DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
+func (r *DictionaryService) DeleteSentence(polish string, english string, sentence string) (bool, error) {
 
 	return r.repository.WithTransaction(func(txRepo IRepository) error {
 		var s dbmodels.Sentence
@@ -148,7 +148,7 @@ func (r *DictionaryService) DeleteSentence(ctx context.Context, polish string, e
 
 // Deletes an english part of translation
 // (If it was the last translation attached to the polish part, the polish part also gets deleted)
-func (r *DictionaryService) DeleteTranslation(ctx context.Context, polish string, english string) (bool, error) {
+func (r *DictionaryService) DeleteTranslation(polish string, english string) (bool, error) {
 
 	return r.repository.WithTransaction(func(txRepo IRepository) error {
 		var translation dbmodels.Translation
@@ -169,7 +169,7 @@ func (r *DictionaryService) DeleteTranslation(ctx context.Context, polish string
 }
 
 // Deletes whole translation (polish part, english counterparts and its sentences)
-func (r *DictionaryService) DeleteWord(ctx context.Context, polish string) (bool, error) {
+func (r *DictionaryService) DeleteWord(polish string) (bool, error) {
 
 	if err := r.repository.DeleteWord(polish); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -181,7 +181,7 @@ func (r *DictionaryService) DeleteWord(ctx context.Context, polish string) (bool
 }
 
 // Updates polish part of the translation
-func (r *DictionaryService) UpdateWord(ctx context.Context, polish string, newPolish string) (bool, error) {
+func (r *DictionaryService) UpdateWord(polish string, newPolish string) (bool, error) {
 
 	return r.repository.WithTransaction(func(txRepo IRepository) error {
 		var word dbmodels.Word
@@ -202,7 +202,7 @@ func (r *DictionaryService) UpdateWord(ctx context.Context, polish string, newPo
 }
 
 // Updates english part of the translation
-func (r *DictionaryService) UpdateTranslation(ctx context.Context, polish string, english string, newEnglish string) (bool, error) {
+func (r *DictionaryService) UpdateTranslation(polish string, english string, newEnglish string) (bool, error) {
 
 	return r.repository.WithTransaction(func(txRepo IRepository) error {
 		var translation dbmodels.Translation
@@ -225,7 +225,7 @@ func (r *DictionaryService) UpdateTranslation(ctx context.Context, polish string
 }
 
 // Updates an example sentence of given translation
-func (r *DictionaryService) UpdateSentence(ctx context.Context, polish string, english string, sentence string, newSentence string) (bool, error) {
+func (r *DictionaryService) UpdateSentence(polish string, english string, sentence string, newSentence string) (bool, error) {
 
 	return r.repository.WithTransaction(func(txRepo IRepository) error {
 
@@ -248,7 +248,7 @@ func (r *DictionaryService) UpdateSentence(ctx context.Context, polish string, e
 }
 
 // Fetches data regarding given polish word
-func (r *DictionaryService) SelectWord(ctx context.Context, polish string) (*model.Word, error) {
+func (r *DictionaryService) SelectWord(polish string) (*model.Word, error) {
 	var word dbmodels.Word
 	var err error
 

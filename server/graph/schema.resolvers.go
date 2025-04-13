@@ -12,53 +12,53 @@ import (
 
 // CreateWord is the resolver for the createWord field.
 func (r *mutationResolver) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
-	return r.DB.CreateWordOrAddTranslationOrSentence(ctx, polish, translation)
+	return r.DB.CreateWordOrAddTranslationOrSentence(polish, translation)
 }
 
 // CreateSentence is the resolver for the createSentence field.
 func (r *mutationResolver) CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
-	return r.DB.CreateWordOrAddTranslationOrSentence(ctx, polish, model.NewTranslation{English: english, Sentences: []string{sentence}})
+	return r.DB.CreateWordOrAddTranslationOrSentence(polish, model.NewTranslation{English: english, Sentences: []string{sentence}})
 }
 
 // CreateTranslation is the resolver for the createTranslation field.
 func (r *mutationResolver) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
-	return r.DB.CreateWordOrAddTranslationOrSentence(ctx, polish, translation)
+	return r.DB.CreateWordOrAddTranslationOrSentence(polish, translation)
 }
 
 // DeleteSentence is the resolver for the deleteSentence field.
 func (r *mutationResolver) DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
-	return r.DB.DeleteSentence(ctx, polish, english, sentence)
+	return r.DB.DeleteSentence(polish, english, sentence)
 }
 
 // DeleteTranslation is the resolver for the deleteTranslation field.
 func (r *mutationResolver) DeleteTranslation(ctx context.Context, polish string, english string) (bool, error) {
-	return r.DB.DeleteTranslation(ctx, polish, english)
+	return r.DB.DeleteTranslation(polish, english)
 }
 
 // DeleteWord is the resolver for the deleteWord field.
 func (r *mutationResolver) DeleteWord(ctx context.Context, polish string) (bool, error) {
 
-	return r.DB.DeleteWord(ctx, polish)
+	return r.DB.DeleteWord(polish)
 }
 
 // UpdateWord is the resolver for the updateWord field.
 func (r *mutationResolver) UpdateWord(ctx context.Context, polish string, newPolish string) (bool, error) {
-	return r.DB.UpdateWord(ctx, polish, newPolish)
+	return r.DB.UpdateWord(polish, newPolish)
 }
 
 // UpdateTranslation is the resolver for the updateTranslation field.
 func (r *mutationResolver) UpdateTranslation(ctx context.Context, polish string, english string, newEnglish string) (bool, error) {
-	return r.DB.UpdateTranslation(ctx, polish, english, newEnglish)
+	return r.DB.UpdateTranslation(polish, english, newEnglish)
 }
 
 // UpdateSentence is the resolver for the updateSentence field.
 func (r *mutationResolver) UpdateSentence(ctx context.Context, polish string, english string, sentence string, newSentence string) (bool, error) {
-	return r.DB.UpdateSentence(ctx, polish, english, sentence, newSentence)
+	return r.DB.UpdateSentence(polish, english, sentence, newSentence)
 }
 
 // SelectWord is the resolver for the selectWord field.
 func (r *queryResolver) SelectWord(ctx context.Context, polish string) (*model.Word, error) {
-	return r.DB.SelectWord(ctx, polish)
+	return r.DB.SelectWord(polish)
 }
 
 // Mutation returns MutationResolver implementation.

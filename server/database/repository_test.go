@@ -1,7 +1,6 @@
 package database
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -49,7 +48,7 @@ func TestCreateWord_Success(t *testing.T) {
 			assert.Equal(t, expectedWord.Translations[0].English, wordArg.Translations[0].English)
 			assert.ElementsMatch(t, expectedWord.Translations[0].Sentences, wordArg.Translations[0].Sentences)
 		})
-	success, err := dbService.CreateWordOrAddTranslationOrSentence(context.Background(), polish, translation)
+	success, err := dbService.CreateWordOrAddTranslationOrSentence(polish, translation)
 
 	assert.NoError(t, err)
 	assert.True(t, success)
@@ -105,7 +104,7 @@ func TestCreateWord_WordExistsButTranslationDoesnt_Success(t *testing.T) {
 			assert.Equal(t, expectedTranslation, wordArg)
 		})
 
-	success, err := dbService.CreateWordOrAddTranslationOrSentence(context.Background(), polish, translation)
+	success, err := dbService.CreateWordOrAddTranslationOrSentence(polish, translation)
 
 	assert.NoError(t, err)
 	assert.True(t, success)
@@ -160,7 +159,7 @@ func TestCreateWord_WordAndTranslationAlreadyExistsButSomeSentencesDont_Success(
 			assert.Equal(t, expectedSentence, wordArg)
 		})
 
-	success, err := dbService.CreateWordOrAddTranslationOrSentence(context.Background(), polish,
+	success, err := dbService.CreateWordOrAddTranslationOrSentence(polish,
 		model.NewTranslation{English: English, Sentences: []string{sentence}})
 
 	assert.NoError(t, err)
@@ -203,7 +202,7 @@ func TestCreateWord_WordTranslationAndAllSentencesAlreadyExist(t *testing.T) {
 		*(wordArg) = *(dbTranslation)
 	})
 
-	success, err := dbService.CreateWordOrAddTranslationOrSentence(context.Background(), polish,
+	success, err := dbService.CreateWordOrAddTranslationOrSentence(polish,
 		model.NewTranslation{English: English, Sentences: []string{sentence}})
 
 	assert.Nil(t, err)
@@ -235,7 +234,7 @@ func TestDeleteSentence_SentenceExists_Success(t *testing.T) {
 			assert.Equal(t, wordArg, dbSentence)
 		})
 
-	success, err := dbService.DeleteSentence(context.Background(), polish, English, sentence)
+	success, err := dbService.DeleteSentence(polish, English, sentence)
 
 	assert.NoError(t, err)
 	assert.True(t, success)
@@ -256,7 +255,7 @@ func TestDeleteSentence_SentenceDoesntExist(t *testing.T) {
 	mockRepo.On("WithTransaction", mock.Anything).Return(false)
 	mockRepo.On("GetSentence", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(expectedError)
 
-	success, err := dbService.DeleteSentence(context.Background(), polish, English, sentence)
+	success, err := dbService.DeleteSentence(polish, English, sentence)
 
 	assert.Error(t, err)
 	assert.False(t, success)
@@ -294,7 +293,7 @@ func TestDeleteTranslation_Success(t *testing.T) {
 			assert.ElementsMatch(t, wordArg.Sentences, dbTranslation.Sentences)
 		})
 
-	success, err := dbService.DeleteTranslation(context.Background(), polish, English)
+	success, err := dbService.DeleteTranslation(polish, English)
 
 	assert.NoError(t, err)
 	assert.True(t, success)
@@ -314,7 +313,7 @@ func TestDeleteTranslation_TranslationOrWordDoesntExist(t *testing.T) {
 	mockRepo.On("WithTransaction", mock.Anything).Return(false)
 	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(expectedError)
 
-	success, err := dbService.DeleteTranslation(context.Background(), polish, English)
+	success, err := dbService.DeleteTranslation(polish, English)
 
 	assert.Error(t, err)
 	assert.False(t, success)
@@ -332,7 +331,7 @@ func TestDeleteWord_Success(t *testing.T) {
 
 	mockRepo.On("DeleteWord", mock.Anything, mock.Anything).Return(nil)
 
-	success, err := dbService.DeleteWord(context.Background(), polish)
+	success, err := dbService.DeleteWord(polish)
 
 	assert.NoError(t, err)
 	assert.True(t, success)
@@ -351,7 +350,7 @@ func TestDeleteWord_WordDoesntExist(t *testing.T) {
 
 	mockRepo.On("DeleteWord", mock.Anything, mock.Anything).Return(expectedError)
 
-	success, err := dbService.DeleteWord(context.Background(), polish)
+	success, err := dbService.DeleteWord(polish)
 
 	assert.Error(t, err)
 	assert.False(t, success)
@@ -389,7 +388,7 @@ func TestUpdateWord_Success(t *testing.T) {
 
 	mockRepo.On("UpdateWord", mock.Anything, mock.Anything).Return(nil)
 
-	success, err := dbService.UpdateWord(context.Background(), polish, newPolish)
+	success, err := dbService.UpdateWord(polish, newPolish)
 
 	assert.NoError(t, err)
 	assert.True(t, success)
@@ -409,7 +408,7 @@ func TestUpdateWord_WordToUpdateDoesntExist(t *testing.T) {
 
 	mockRepo.On("GetWord", mock.Anything, mock.Anything, mock.Anything).Return(expectedError)
 
-	success, err := dbService.UpdateWord(context.Background(), polish, newPolish)
+	success, err := dbService.UpdateWord(polish, newPolish)
 
 	assert.Error(t, err)
 	assert.False(t, success)
@@ -449,7 +448,7 @@ func TestUpdateWord_UpdatedWordExists(t *testing.T) {
 
 	mockRepo.On("UpdateWord", mock.Anything, mock.Anything).Return(expectedError)
 
-	success, err := dbService.UpdateWord(context.Background(), polish, newPolish)
+	success, err := dbService.UpdateWord(polish, newPolish)
 
 	assert.Error(t, err)
 	assert.False(t, success)
@@ -479,7 +478,7 @@ func TestUpdateSentence_Success(t *testing.T) {
 
 	mockRepo.On("UpdateSentence", mock.Anything, mock.Anything).Return(nil)
 
-	success, err := dbService.UpdateSentence(context.Background(), polish, English, sentence, newSentence)
+	success, err := dbService.UpdateSentence(polish, English, sentence, newSentence)
 
 	assert.NoError(t, err)
 	assert.True(t, success)
@@ -501,7 +500,7 @@ func TestUpdateSentence_SentenceToUpdateDoesntExist(t *testing.T) {
 
 	mockRepo.On("GetSentence", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(expectedError)
 
-	success, err := dbService.UpdateSentence(context.Background(), polish, English, sentence, newSentence)
+	success, err := dbService.UpdateSentence(polish, English, sentence, newSentence)
 
 	assert.Error(t, err)
 	assert.False(t, success)
@@ -534,7 +533,7 @@ func TestUpdateSentence_UpdatedSentenceExists(t *testing.T) {
 
 	mockRepo.On("UpdateSentence", mock.Anything, mock.Anything).Return(expectedError)
 
-	success, err := dbService.UpdateSentence(context.Background(), polish, English, sentence, newSentence)
+	success, err := dbService.UpdateSentence(polish, English, sentence, newSentence)
 
 	assert.Error(t, err)
 	assert.False(t, success)
@@ -569,7 +568,7 @@ func TestUpdateTranslation_Success(t *testing.T) {
 
 	mockRepo.On("UpdateTranslation", mock.Anything, mock.Anything).Return(nil)
 
-	success, err := dbService.UpdateTranslation(context.Background(), polish, English, newEnglish)
+	success, err := dbService.UpdateTranslation(polish, English, newEnglish)
 
 	assert.NoError(t, err)
 	assert.True(t, success)
@@ -591,7 +590,7 @@ func TestUpdateTranslation_TranslationToUpdateDoesntExist(t *testing.T) {
 
 	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(expectedError)
 
-	success, err := dbService.UpdateTranslation(context.Background(), polish, English, newEnglish)
+	success, err := dbService.UpdateTranslation(polish, English, newEnglish)
 
 	assert.Error(t, err)
 	assert.False(t, success)
@@ -628,7 +627,7 @@ func TestUpdateTranslation_UpdatedTranslationExists(t *testing.T) {
 
 	mockRepo.On("UpdateTranslation", mock.Anything, mock.Anything).Return(expectedError)
 
-	success, err := dbService.UpdateTranslation(context.Background(), polish, English, newEnglish)
+	success, err := dbService.UpdateTranslation(polish, English, newEnglish)
 
 	assert.Error(t, err)
 	assert.False(t, success)
@@ -674,7 +673,7 @@ func TestSelectWord_Success(t *testing.T) {
 		*(wordArg) = *(dbWord)
 	})
 
-	retWord, err := dbService.SelectWord(context.Background(), polish)
+	retWord, err := dbService.SelectWord(polish)
 
 	assert.NoError(t, err)
 	assert.Equal(t, retWord, expectedWord)
@@ -692,7 +691,7 @@ func TestSelectWord_WordDoesntExist(t *testing.T) {
 
 	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(expectedError)
 
-	retWord, err := dbService.SelectWord(context.Background(), polish)
+	retWord, err := dbService.SelectWord(polish)
 
 	assert.Error(t, err)
 	assert.Nil(t, retWord)

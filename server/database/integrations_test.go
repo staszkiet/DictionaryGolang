@@ -89,11 +89,11 @@ func (s *DictionaryTestSuite) TestCreateWord() {
 	baseWord := "rower"
 	translation := model.NewTranslation{English: "bike", Sentences: []string{"I like my bike"}}
 
-	_, err := s.svc.CreateWordOrAddTranslationOrSentence(context.Background(), baseWord, translation)
+	_, err := s.svc.CreateWordOrAddTranslationOrSentence(baseWord, translation)
 
 	assert.NoError(s.T(), err)
 
-	word, err := s.svc.SelectWord(context.Background(), baseWord)
+	word, err := s.svc.SelectWord(baseWord)
 
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), baseWord, word.Polish)
@@ -103,7 +103,7 @@ func (s *DictionaryTestSuite) TestCreateWordParallel() {
 
 	baseWord := "równoległy"
 	translation1 := model.NewTranslation{English: "parallel", Sentences: []string{"These lines are parallel."}}
-	translation2 := model.NewTranslation{English: "concurrent", Sentences: []string{"We received concurrent requests."}}
+	translation2 := model.NewTranslation{English: "concurrent", Sentences: []string{"These lines are concurrent."}}
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -112,13 +112,13 @@ func (s *DictionaryTestSuite) TestCreateWordParallel() {
 
 	go func() {
 		defer wg.Done()
-		_, err := s.svc.CreateWordOrAddTranslationOrSentence(context.Background(), baseWord, translation1)
+		_, err := s.svc.CreateWordOrAddTranslationOrSentence(baseWord, translation1)
 		retChan <- err
 	}()
 
 	go func() {
 		defer wg.Done()
-		_, err := s.svc.CreateWordOrAddTranslationOrSentence(context.Background(), baseWord, translation2)
+		_, err := s.svc.CreateWordOrAddTranslationOrSentence(baseWord, translation2)
 		retChan <- err
 	}()
 
@@ -137,4 +137,47 @@ func (s *DictionaryTestSuite) TestCreateWordParallel() {
 	var count int64
 	s.DB.Model(&dbmodels.Word{}).Where("polish = ?", baseWord).Count(&count)
 	assert.Equal(s.T(), int64(1), count)
+}
+
+func (s *DictionaryTestSuite) TestDeleteWordParallel() {
+
+	var count int64
+
+	baseWord := "równoległy"
+	translation := model.NewTranslation{English: "parallel", Sentences: []string{"These lines are parallel."}}
+	s.svc.CreateWordOrAddTranslationOrSentence(baseWord, translation)
+	s.DB.Model(&dbmodels.Word{}).Where("polish = ?", baseWord).Count(&count)
+	assert.Equal(s.T(), int64(1), count)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	retChan := make(chan error, 2)
+
+	go func() {
+		defer wg.Done()
+		_, err := s.svc.DeleteWord(baseWord)
+		retChan <- err
+	}()
+
+	go func() {
+		defer wg.Done()
+		_, err := s.svc.DeleteWord(baseWord)
+		retChan <- err
+	}()
+
+	wg.Wait()
+	close(retChan)
+
+	var errors []error
+	for err := range retChan {
+		errors = append(errors, err)
+	}
+
+	assert.Equal(s.T(), 2, len(errors))
+	assert.Nil(s.T(), errors[0])
+	assert.Nil(s.T(), errors[1])
+
+	s.DB.Model(&dbmodels.Word{}).Where("polish = ?", baseWord).Count(&count)
+	assert.Equal(s.T(), int64(0), count)
 }
