@@ -34,7 +34,7 @@ func NewDatabaseService() *DictionaryService {
 	dbname := os.Getenv("POSTGRES_DBNAME")
 	sslmode := os.Getenv("POSTGRES_SSLMODE")
 
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5430 sslmode=%s",
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5432 sslmode=%s",
 		host, user, password, dbname, sslmode)
 
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
