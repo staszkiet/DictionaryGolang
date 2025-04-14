@@ -1,13 +1,14 @@
 package database
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/joho/godotenv"
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
+	customerrors "github.com/staszkiet/DictionaryGolang/server/errors"
 
 	"github.com/staszkiet/DictionaryGolang/server/graph/model"
 	"gorm.io/driver/postgres"
@@ -33,7 +34,7 @@ func NewDatabaseService() *DictionaryService {
 	dbname := os.Getenv("POSTGRES_DBNAME")
 	sslmode := os.Getenv("POSTGRES_SSLMODE")
 
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5432 sslmode=%s",
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=5430 sslmode=%s",
 		host, user, password, dbname, sslmode)
 
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -50,212 +51,218 @@ func NewDatabaseService() *DictionaryService {
 
 }
 
-// Adds a translation to the dictionary (assumes that polish part wasn't in the dictionary at the time of calling)
-func (r *DictionaryService) CreateWord(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
+// Adds a translation to the dictionary (whether given polish word exists or not). I translation to given word already exists then adds
+// sum of sentences to the translation
+func (r *DictionaryService) CreateWordOrAddTranslationOrSentence(polish string, translation model.NewTranslation) (bool, error) {
 
-	return r.repository.WithTransaction(func(tx *gorm.DB) error {
-		sentences := make([]dbmodels.Sentence, 0)
+	return r.repository.WithTransaction(func(txRepo IRepository) error {
 
-		for _, s := range translation.Sentences {
-			sentences = append(sentences, dbmodels.Sentence{Sentence: s})
+		var dbword dbmodels.Word
+		var dbtranslation dbmodels.Translation
+
+		var err error
+		if err = txRepo.GetWord(polish, &dbword); err == nil {
+			if err = txRepo.GetTranslation(polish, translation.English, &dbtranslation); err == nil {
+				existingSentencesMap := make(map[string]bool)
+				newSentences := make([]dbmodels.Sentence, 0)
+
+				for _, s := range dbtranslation.Sentences {
+					existingSentencesMap[s.Sentence] = true
+				}
+
+				for _, s := range translation.Sentences {
+					if !existingSentencesMap[s] {
+						newSentences = append(newSentences, dbmodels.Sentence{Sentence: s, TranslationID: dbtranslation.ID})
+					}
+				}
+
+				if len(newSentences) > 0 {
+					txRepo.AddSentences(newSentences)
+				}
+
+				return nil
+			} else {
+				sentences := make([]dbmodels.Sentence, 0)
+
+				for _, s := range translation.Sentences {
+					sentences = append(sentences, dbmodels.Sentence{Sentence: s})
+				}
+				newTranslation := &dbmodels.Translation{
+					WordID:    dbword.ID,
+					English:   translation.English,
+					Sentences: sentences,
+				}
+
+				if err = txRepo.AddTranslation(newTranslation); err != nil {
+					return err
+				}
+
+				return nil
+			}
 		}
 
-		var convertedTranslations []dbmodels.Translation
+		if errors.Is(err, customerrors.WordNotExistsError{Word: polish}) {
+			sentences := make([]dbmodels.Sentence, 0)
 
-		convertedTranslations = append(convertedTranslations, dbmodels.Translation{
-			English:   translation.English,
-			Sentences: sentences,
-		})
+			for _, s := range translation.Sentences {
+				sentences = append(sentences, dbmodels.Sentence{Sentence: s})
+			}
 
-		word := &dbmodels.Word{
-			Polish:       polish,
-			Translations: convertedTranslations,
+			var convertedTranslations []dbmodels.Translation
+
+			convertedTranslations = append(convertedTranslations, dbmodels.Translation{
+				English:   translation.English,
+				Sentences: sentences,
+			})
+
+			word := &dbmodels.Word{
+				Polish:       polish,
+				Translations: convertedTranslations,
+			}
+
+			if err := txRepo.AddWord(word); err != nil {
+				return err
+			}
+			return nil
 		}
+		return err
 
-		if err := r.repository.Add(tx, word); err != nil {
-			return err
-		}
-		return nil
-	})
-}
-
-// Adds and examplse sentence to the existing translation
-func (r *DictionaryService) CreateSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
-	var translation dbmodels.Translation
-
-	return r.repository.WithTransaction(func(tx *gorm.DB) error {
-		err := r.repository.GetTranslation(tx, polish, english, &translation)
-		if err != nil {
-			return err
-		}
-
-		newSentence := &dbmodels.Sentence{TranslationID: translation.ID, Sentence: sentence}
-
-		if err := r.repository.Add(tx, newSentence); err != nil {
-			return err
-		}
-		return nil
-	})
-
-}
-
-// Adds a translation to the dictionary (assumes that the polish part already exists in the dictionary with another translation of it)
-func (r *DictionaryService) CreateTranslation(ctx context.Context, polish string, translation model.NewTranslation) (bool, error) {
-
-	return r.repository.WithTransaction(func(tx *gorm.DB) error {
-		var word dbmodels.Word
-		sentences := make([]dbmodels.Sentence, 0)
-
-		for _, s := range translation.Sentences {
-			sentences = append(sentences, dbmodels.Sentence{Sentence: s})
-		}
-		err := r.repository.GetWord(tx, polish, &word)
-		if err != nil {
-			return err
-		}
-
-		newTranslation := &dbmodels.Translation{
-			WordID:    word.ID,
-			English:   translation.English,
-			Sentences: sentences,
-		}
-
-		if err = r.repository.Add(tx, newTranslation); err != nil {
-			return err
-		}
-		return nil
-	})
-
+	}, true, true)
 }
 
 // Deletes an example sentence from given translation
-func (r *DictionaryService) DeleteSentence(ctx context.Context, polish string, english string, sentence string) (bool, error) {
+func (r *DictionaryService) DeleteSentence(polish string, english string, sentence string) (bool, error) {
 
-	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+	return r.repository.WithTransaction(func(txRepo IRepository) error {
 		var s dbmodels.Sentence
-		err := r.repository.GetSentence(tx, polish, english, sentence, &s)
+		err := txRepo.GetSentence(polish, english, sentence, &s)
 		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil
+			}
 			return err
 		}
 
-		if err := r.repository.DeleteSentence(tx, s); err != nil {
+		if err := txRepo.DeleteSentence(s); err != nil {
 			return err
 		}
 		return nil
-	})
+	}, false, false)
 
 }
 
 // Deletes an english part of translation
 // (If it was the last translation attached to the polish part, the polish part also gets deleted)
-func (r *DictionaryService) DeleteTranslation(ctx context.Context, polish string, english string) (bool, error) {
+func (r *DictionaryService) DeleteTranslation(polish string, english string) (bool, error) {
 
-	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+	return r.repository.WithTransaction(func(txRepo IRepository) error {
 		var translation dbmodels.Translation
-		err := r.repository.GetTranslation(tx, polish, english, &translation)
+		err := txRepo.GetTranslation(polish, english, &translation)
 		if err != nil {
+			if errors.Is(err, customerrors.TranslationNotExistsError{Word: polish, Translation: english}) {
+				return nil
+			}
 			return err
 		}
 
-		if err := r.repository.DeleteTranslation(tx, &translation); err != nil {
+		if err := txRepo.DeleteTranslation(&translation); err != nil {
 			return err
 		}
 		return nil
-	})
+	}, false, false)
 
 }
 
 // Deletes whole translation (polish part, english counterparts and its sentences)
-func (r *DictionaryService) DeleteWord(ctx context.Context, polish string) (bool, error) {
+func (r *DictionaryService) DeleteWord(polish string) (bool, error) {
 
-	return r.repository.WithTransaction(func(tx *gorm.DB) error {
-		if err := r.repository.DeleteWord(tx, polish); err != nil {
-			return err
+	if err := r.repository.DeleteWord(polish); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return true, nil
 		}
-		return nil
-	})
+		return false, err
+	}
+	return true, nil
 }
 
 // Updates polish part of the translation
-func (r *DictionaryService) UpdateWord(ctx context.Context, polish string, newPolish string) (bool, error) {
+func (r *DictionaryService) UpdateWord(polish string, newPolish string) (bool, error) {
 
-	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+	return r.repository.WithTransaction(func(txRepo IRepository) error {
 		var word dbmodels.Word
-		err := r.repository.GetWord(tx, polish, &word)
+		err := txRepo.GetWord(polish, &word)
 		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return customerrors.WordNotExistsError{Word: polish}
+			}
 			return err
 		}
 
-		if err := r.repository.Update(tx, &word, newPolish, WORD_UPDATE); err != nil {
+		if err := txRepo.UpdateWord(&word, newPolish); err != nil {
 			return err
 		}
 		return nil
-	})
+	}, false, false)
 
 }
 
 // Updates english part of the translation
-func (r *DictionaryService) UpdateTranslation(ctx context.Context, polish string, english string, newEnglish string) (bool, error) {
+func (r *DictionaryService) UpdateTranslation(polish string, english string, newEnglish string) (bool, error) {
 
-	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+	return r.repository.WithTransaction(func(txRepo IRepository) error {
 		var translation dbmodels.Translation
 
-		err := r.repository.GetTranslation(tx, polish, english, &translation)
-
+		err := txRepo.GetTranslation(polish, english, &translation)
 		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return customerrors.TranslationNotExistsError{Word: polish, Translation: english}
+			}
 			return err
 		}
 
-		err = r.repository.Update(tx, &translation, newEnglish, TRANSLATION_UPDATE)
+		err = txRepo.UpdateTranslation(&translation, newEnglish)
 		if err != nil {
 			return err
 		}
 		return nil
-	})
+	}, false, false)
 
 }
 
 // Updates an example sentence of given translation
-func (r *DictionaryService) UpdateSentence(ctx context.Context, polish string, english string, sentence string, newSentence string) (bool, error) {
+func (r *DictionaryService) UpdateSentence(polish string, english string, sentence string, newSentence string) (bool, error) {
 
-	return r.repository.WithTransaction(func(tx *gorm.DB) error {
+	return r.repository.WithTransaction(func(txRepo IRepository) error {
 
 		var s dbmodels.Sentence
-		err := r.repository.GetSentence(tx, polish, english, sentence, &s)
-
+		err := txRepo.GetSentence(polish, english, sentence, &s)
 		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return customerrors.SentenceNotExistsError{Word: polish, Translation: english, Sentence: sentence}
+			}
 			return err
 		}
 
-		err = r.repository.Update(tx, &s, newSentence, SENTENCE_UPDATE)
+		err = txRepo.UpdateSentence(&s, newSentence)
 		if err != nil {
 			return err
 		}
 		return nil
-	})
+	}, false, false)
 
 }
 
 // Fetches data regarding given polish word
-func (r *DictionaryService) SelectWord(ctx context.Context, polish string) (*model.Word, error) {
+func (r *DictionaryService) SelectWord(polish string) (*model.Word, error) {
 	var word dbmodels.Word
 	var err error
 
-	_, retErr := r.repository.WithTransaction(func(tx *gorm.DB) error {
-		if err = r.repository.GetWord(tx, polish, &word); err != nil {
-			return err
+	if err = r.repository.GetWord(polish, &word); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, customerrors.WordNotExistsError{Word: polish}
 		}
-		return nil
-	})
-	if retErr == nil {
-		return dbmodels.DBWordToGQLWord(&word), nil
-	} else {
-		return nil, retErr
+		return nil, err
 	}
-}
 
-const (
-	WORD_UPDATE        = "polish"
-	TRANSLATION_UPDATE = "english"
-	SENTENCE_UPDATE    = "sentence"
-)
+	return dbmodels.DBWordToGQLWord(&word), nil
+}
