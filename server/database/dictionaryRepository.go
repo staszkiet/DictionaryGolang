@@ -21,7 +21,7 @@ type IRepository interface {
 	UpdateWord(entity *dbmodels.Word, newPolish string) error
 	UpdateSentence(entity *dbmodels.Sentence, newSentence string) error
 	UpdateTranslation(entity *dbmodels.Translation, newTranslation string) error
-	WithTransaction(fn func(tx IRepository) error) (bool, error)
+	WithTransaction(fn func(tx IRepository) error, lock_words bool, lock_translations bool) (bool, error)
 	withTx(tx *gorm.DB) IRepository
 }
 
@@ -164,14 +164,19 @@ func (d *dictionaryRepository) UpdateSentence(sentence *dbmodels.Sentence, newSe
 	return nil
 }
 
-func (d *dictionaryRepository) WithTransaction(fn func(repo IRepository) error) (bool, error) {
-
+func (d *dictionaryRepository) WithTransaction(fn func(repo IRepository) error, lock_words bool, lock_translations bool) (bool, error) {
 	err := d.db.Transaction(
 		func(tx *gorm.DB) error {
+			if lock_words {
+				tx.Exec("LOCK TABLE words IN EXCLUSIVE MODE")
+			}
+			if lock_translations {
+				tx.Exec("LOCK TABLE translations IN EXCLUSIVE MODE")
+			}
 			repo := d.withTx(tx)
-			err := fn(repo)
-			return err
-		})
+			return fn(repo)
+		},
+	)
 
 	if err != nil {
 		return false, err

@@ -60,7 +60,8 @@ func (r *DictionaryService) CreateWordOrAddTranslationOrSentence(polish string, 
 		var dbword dbmodels.Word
 		var dbtranslation dbmodels.Translation
 
-		if err := txRepo.GetWord(polish, &dbword); err == nil {
+		var err error
+		if err = txRepo.GetWord(polish, &dbword); err == nil {
 			if err = txRepo.GetTranslation(polish, translation.English, &dbtranslation); err == nil {
 				existingSentencesMap := make(map[string]bool)
 				newSentences := make([]dbmodels.Sentence, 0)
@@ -100,29 +101,33 @@ func (r *DictionaryService) CreateWordOrAddTranslationOrSentence(polish string, 
 			}
 		}
 
-		sentences := make([]dbmodels.Sentence, 0)
+		if errors.Is(err, customerrors.WordNotExistsError{Word: polish}) {
+			sentences := make([]dbmodels.Sentence, 0)
 
-		for _, s := range translation.Sentences {
-			sentences = append(sentences, dbmodels.Sentence{Sentence: s})
+			for _, s := range translation.Sentences {
+				sentences = append(sentences, dbmodels.Sentence{Sentence: s})
+			}
+
+			var convertedTranslations []dbmodels.Translation
+
+			convertedTranslations = append(convertedTranslations, dbmodels.Translation{
+				English:   translation.English,
+				Sentences: sentences,
+			})
+
+			word := &dbmodels.Word{
+				Polish:       polish,
+				Translations: convertedTranslations,
+			}
+
+			if err := txRepo.AddWord(word); err != nil {
+				return err
+			}
+			return nil
 		}
+		return err
 
-		var convertedTranslations []dbmodels.Translation
-
-		convertedTranslations = append(convertedTranslations, dbmodels.Translation{
-			English:   translation.English,
-			Sentences: sentences,
-		})
-
-		word := &dbmodels.Word{
-			Polish:       polish,
-			Translations: convertedTranslations,
-		}
-
-		if err := txRepo.AddWord(word); err != nil {
-			return err
-		}
-		return nil
-	})
+	}, true, true)
 }
 
 // Deletes an example sentence from given translation
@@ -142,7 +147,7 @@ func (r *DictionaryService) DeleteSentence(polish string, english string, senten
 			return err
 		}
 		return nil
-	})
+	}, false, false)
 
 }
 
@@ -154,7 +159,7 @@ func (r *DictionaryService) DeleteTranslation(polish string, english string) (bo
 		var translation dbmodels.Translation
 		err := txRepo.GetTranslation(polish, english, &translation)
 		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+			if errors.Is(err, customerrors.TranslationNotExistsError{Word: polish, Translation: english}) {
 				return nil
 			}
 			return err
@@ -164,7 +169,7 @@ func (r *DictionaryService) DeleteTranslation(polish string, english string) (bo
 			return err
 		}
 		return nil
-	})
+	}, false, false)
 
 }
 
@@ -197,7 +202,7 @@ func (r *DictionaryService) UpdateWord(polish string, newPolish string) (bool, e
 			return err
 		}
 		return nil
-	})
+	}, false, false)
 
 }
 
@@ -220,7 +225,7 @@ func (r *DictionaryService) UpdateTranslation(polish string, english string, new
 			return err
 		}
 		return nil
-	})
+	}, false, false)
 
 }
 
@@ -243,7 +248,7 @@ func (r *DictionaryService) UpdateSentence(polish string, english string, senten
 			return err
 		}
 		return nil
-	})
+	}, false, false)
 
 }
 

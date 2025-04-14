@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"testing"
 
 	dbmodels "github.com/staszkiet/DictionaryGolang/server/database/models"
@@ -12,7 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestCreateWord_Success(t *testing.T) {
+func TestCreateWordOrAddTranslationOrSentence_WhenDataIsValid_ShouldReturnSuccess(t *testing.T) {
 
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
@@ -36,7 +35,7 @@ func TestCreateWord_Success(t *testing.T) {
 		},
 	}
 
-	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(fmt.Errorf("blad"))
+	mockRepo.On("GetWord", mock.Anything, mock.Anything).Return(customerrors.WordNotExistsError{Word: polish})
 
 	mockRepo.On("WithTransaction", mock.Anything).Return(true)
 
@@ -56,7 +55,7 @@ func TestCreateWord_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestCreateWord_WordExistsButTranslationDoesnt_Success(t *testing.T) {
+func TestCreateWordOrAddTranslationOrSentence_WordExistsButTranslationDoesnt_ShouldReturnSuccess(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -95,7 +94,7 @@ func TestCreateWord_WordExistsButTranslationDoesnt_Success(t *testing.T) {
 		*(wordArg) = *(dbWord)
 	})
 
-	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything).Return(fmt.Errorf("blad"))
+	mockRepo.On("GetTranslation", mock.Anything, mock.Anything, mock.Anything).Return(customerrors.TranslationNotExistsError{Word: polish, Translation: translation.English})
 
 	mockRepo.On("AddTranslation", mock.Anything).
 		Return(nil).
@@ -112,7 +111,7 @@ func TestCreateWord_WordExistsButTranslationDoesnt_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestCreateWord_WordAndTranslationAlreadyExistsButSomeSentencesDont_Success(t *testing.T) {
+func TestCreateWordOrAddTranslationOrSentence_WordAndTranslationAlreadyExistsButSomeSentencesDont_ShouldReturnSuccess(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -242,7 +241,7 @@ func TestDeleteSentence_SentenceExists_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestDeleteSentence_SentenceDoesntExist(t *testing.T) {
+func TestDeleteSentence_SentenceDoesntExist_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -263,7 +262,7 @@ func TestDeleteSentence_SentenceDoesntExist(t *testing.T) {
 
 	mockRepo.AssertExpectations(t)
 }
-func TestDeleteTranslation_Success(t *testing.T) {
+func TestDeleteTranslation_TranslationExists_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -301,7 +300,7 @@ func TestDeleteTranslation_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestDeleteTranslation_TranslationOrWordDoesntExist(t *testing.T) {
+func TestDeleteTranslation_TranslationOrWordDoesntExist_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -315,14 +314,13 @@ func TestDeleteTranslation_TranslationOrWordDoesntExist(t *testing.T) {
 
 	success, err := dbService.DeleteTranslation(polish, English)
 
-	assert.Error(t, err)
+	assert.Nil(t, err)
 	assert.False(t, success)
-	assert.Equal(t, expectedError, err)
 
 	mockRepo.AssertExpectations(t)
 }
 
-func TestDeleteWord_Success(t *testing.T) {
+func TestDeleteWord_WordExists_Success(t *testing.T) {
 
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
@@ -339,27 +337,24 @@ func TestDeleteWord_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestDeleteWord_WordDoesntExist(t *testing.T) {
+func TestDeleteWord_WordDoesntExist_Success(t *testing.T) {
 
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
 	polish := "książka"
 
-	expectedError := customerrors.WordNotExistsError{Word: polish}
-
-	mockRepo.On("DeleteWord", mock.Anything, mock.Anything).Return(expectedError)
+	mockRepo.On("DeleteWord", mock.Anything, mock.Anything).Return(nil)
 
 	success, err := dbService.DeleteWord(polish)
 
-	assert.Error(t, err)
-	assert.False(t, success)
-	assert.Equal(t, expectedError, err)
+	assert.Nil(t, err)
+	assert.True(t, success)
 
 	mockRepo.AssertExpectations(t)
 }
 
-func TestUpdateWord_Success(t *testing.T) {
+func TestUpdateWord_WordToUpdateExists_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -396,7 +391,7 @@ func TestUpdateWord_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestUpdateWord_WordToUpdateDoesntExist(t *testing.T) {
+func TestUpdateWord_WordToUpdateDoesntExist_ShouldReturnError(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -417,7 +412,7 @@ func TestUpdateWord_WordToUpdateDoesntExist(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestUpdateWord_UpdatedWordExists(t *testing.T) {
+func TestUpdateWord_UpdatedWordExists_ShouldReturnError(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -456,7 +451,7 @@ func TestUpdateWord_UpdatedWordExists(t *testing.T) {
 
 	mockRepo.AssertExpectations(t)
 }
-func TestUpdateSentence_Success(t *testing.T) {
+func TestUpdateSentence_SentenceToUpdateExists_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -486,7 +481,7 @@ func TestUpdateSentence_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestUpdateSentence_SentenceToUpdateDoesntExist(t *testing.T) {
+func TestUpdateSentence_SentenceToUpdateDoesntExist_ShouldReturnError(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -509,7 +504,7 @@ func TestUpdateSentence_SentenceToUpdateDoesntExist(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestUpdateSentence_UpdatedSentenceExists(t *testing.T) {
+func TestUpdateSentence_UpdatedSentenceExists_ShouldReturnError(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -542,7 +537,7 @@ func TestUpdateSentence_UpdatedSentenceExists(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestUpdateTranslation_Success(t *testing.T) {
+func TestUpdateTranslation_TranslationToUpdateExists_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -576,7 +571,7 @@ func TestUpdateTranslation_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestUpdateTranslation_TranslationToUpdateDoesntExist(t *testing.T) {
+func TestUpdateTranslation_TranslationToUpdateDoesntExist_ShouldReturnError(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -599,7 +594,7 @@ func TestUpdateTranslation_TranslationToUpdateDoesntExist(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestUpdateTranslation_UpdatedTranslationExists(t *testing.T) {
+func TestUpdateTranslation_UpdatedTranslationExists_ShouldReturnError(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -636,7 +631,7 @@ func TestUpdateTranslation_UpdatedTranslationExists(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestSelectWord_Success(t *testing.T) {
+func TestSelectWord_WordExists_Success(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 
@@ -681,7 +676,7 @@ func TestSelectWord_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestSelectWord_WordDoesntExist(t *testing.T) {
+func TestSelectWord_WordDoesntExist_ShouldReturnError(t *testing.T) {
 	mockRepo := new(MockRepository)
 	dbService := &DictionaryService{repository: mockRepo}
 

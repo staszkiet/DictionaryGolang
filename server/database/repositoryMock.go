@@ -77,7 +77,7 @@ func (m *MockRepository) UpdateSentence(sentence *dbmodels.Sentence, newSentence
 	return args.Error(0)
 }
 
-func (m *MockRepository) WithTransaction(fn func(repo IRepository) error) (bool, error) {
+func (m *MockRepository) WithTransaction(fn func(repo IRepository) error, lock_words bool, lock_translations bool) (bool, error) {
 
 	args := m.Called(fn)
 	var err error

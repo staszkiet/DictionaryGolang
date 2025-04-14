@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -77,7 +78,11 @@ func (s *DictionaryTestSuite) SetupSuite() {
 }
 
 func (s *DictionaryTestSuite) SetupTest() {
+
 	s.DB.Exec("TRUNCATE words CASCADE")
+	s.DB.Exec("TRUNCATE translations CASCADE")
+	s.DB.Exec("TRUNCATE sentences CASCADE")
+
 }
 
 func TestDictionarySuite(t *testing.T) {
@@ -101,26 +106,29 @@ func (s *DictionaryTestSuite) TestCreateWord() {
 
 func (s *DictionaryTestSuite) TestCreateWordParallel() {
 
+	var count int64
+
 	baseWord := "równoległy"
-	translation1 := model.NewTranslation{English: "parallel", Sentences: []string{"These lines are parallel."}}
-	translation2 := model.NewTranslation{English: "concurrent", Sentences: []string{"These lines are concurrent."}}
+	translations := make([]model.NewTranslation, 0)
+	for i := 0; i < 20; i++ {
+		translations = append(translations, model.NewTranslation{English: strconv.Itoa(i), Sentences: []string{"a"}})
+	}
+
+	s.DB.Model(&dbmodels.Word{}).Where("polish = ?", baseWord).Count(&count)
+	assert.Equal(s.T(), int64(0), count)
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(20)
 
-	retChan := make(chan error, 2)
+	retChan := make(chan error, 20)
 
-	go func() {
-		defer wg.Done()
-		_, err := s.svc.CreateWordOrAddTranslationOrSentence(baseWord, translation1)
-		retChan <- err
-	}()
-
-	go func() {
-		defer wg.Done()
-		_, err := s.svc.CreateWordOrAddTranslationOrSentence(baseWord, translation2)
-		retChan <- err
-	}()
+	for i := 0; i < 20; i++ {
+		go func() {
+			defer wg.Done()
+			_, err := s.svc.CreateWordOrAddTranslationOrSentence(baseWord, translations[i])
+			retChan <- err
+		}()
+	}
 
 	wg.Wait()
 	close(retChan)
@@ -130,13 +138,67 @@ func (s *DictionaryTestSuite) TestCreateWordParallel() {
 		errors = append(errors, err)
 	}
 
-	assert.Equal(s.T(), 2, len(errors))
-	assert.Nil(s.T(), errors[0])
-	assert.Nil(s.T(), errors[1])
+	assert.Equal(s.T(), 20, len(errors))
+	for i := 0; i < 20; i++ {
+		assert.Nil(s.T(), errors[i])
+	}
+
+	s.DB.Model(&dbmodels.Word{}).Where("polish = ?", baseWord).Count(&count)
+
+	assert.Equal(s.T(), int64(1), count)
+
+	s.DB.Model(&dbmodels.Translation{}).Count(&count)
+
+	assert.Equal(s.T(), int64(20), count)
+}
+
+func (s *DictionaryTestSuite) TestAddTranslationParallel() {
 
 	var count int64
+
+	baseWord := "równoległy"
+	translation := model.NewTranslation{English: "parallel", Sentences: []string{"These lines are parallel."}}
+	s.svc.CreateWordOrAddTranslationOrSentence(baseWord, translation)
 	s.DB.Model(&dbmodels.Word{}).Where("polish = ?", baseWord).Count(&count)
 	assert.Equal(s.T(), int64(1), count)
+
+	translations := make([]model.NewTranslation, 0)
+	for i := 0; i < 20; i++ {
+		translations = append(translations, model.NewTranslation{English: "parallel", Sentences: []string{strconv.Itoa(i)}})
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(20)
+
+	retChan := make(chan error, 20)
+
+	for i := 0; i < 20; i++ {
+		go func() {
+			defer wg.Done()
+			_, err := s.svc.CreateWordOrAddTranslationOrSentence(baseWord, translations[i])
+			retChan <- err
+		}()
+	}
+
+	wg.Wait()
+	close(retChan)
+
+	var errors []error
+	for err := range retChan {
+		errors = append(errors, err)
+	}
+
+	assert.Equal(s.T(), 20, len(errors))
+	for i := 0; i < 20; i++ {
+		assert.Nil(s.T(), errors[i])
+	}
+
+	s.DB.Model(&dbmodels.Word{}).Where("polish = ?", baseWord).Count(&count)
+	assert.Equal(s.T(), int64(1), count)
+	s.DB.Model(&dbmodels.Translation{}).Count(&count)
+	assert.Equal(s.T(), int64(1), count)
+	s.DB.Model(&dbmodels.Sentence{}).Count(&count)
+	assert.Equal(s.T(), int64(21), count)
 }
 
 func (s *DictionaryTestSuite) TestDeleteWordParallel() {
@@ -163,6 +225,51 @@ func (s *DictionaryTestSuite) TestDeleteWordParallel() {
 	go func() {
 		defer wg.Done()
 		_, err := s.svc.DeleteWord(baseWord)
+		retChan <- err
+	}()
+
+	wg.Wait()
+	close(retChan)
+
+	var errors []error
+	for err := range retChan {
+		errors = append(errors, err)
+	}
+
+	assert.Equal(s.T(), 2, len(errors))
+	assert.Nil(s.T(), errors[0])
+	assert.Nil(s.T(), errors[1])
+
+	s.DB.Model(&dbmodels.Word{}).Where("polish = ?", baseWord).Count(&count)
+	assert.Equal(s.T(), int64(0), count)
+}
+
+func (s *DictionaryTestSuite) TestDeleteTranslationParallel_WhenItIsTheOnlyTranslation_ShouldAlsoDeleteWord() {
+
+	var count int64
+
+	baseWord := "równoległy"
+	englishWord := "parallel"
+	translation := model.NewTranslation{English: englishWord, Sentences: []string{"These lines are parallel."}}
+	s.svc.CreateWordOrAddTranslationOrSentence(baseWord, translation)
+	s.DB.Model(&dbmodels.Word{}).Where("polish = ?", baseWord).Count(&count)
+	assert.Equal(s.T(), int64(1), count)
+	s.svc.DeleteTranslation(baseWord, englishWord)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	retChan := make(chan error, 2)
+
+	go func() {
+		defer wg.Done()
+		_, err := s.svc.DeleteTranslation(baseWord, englishWord)
+		retChan <- err
+	}()
+
+	go func() {
+		defer wg.Done()
+		_, err := s.svc.DeleteTranslation(baseWord, englishWord)
 		retChan <- err
 	}()
 
